@@ -1,0 +1,155 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Neutral surface system — cool near-white, layered greys */
+    --background: 240 20% 99%;
+    --foreground: 240 10% 9%;
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 9%;
+
+    /* Accent — Linear-style indigo/violet, used sparingly */
+    --primary: 245 75% 59%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 240 15% 96%;
+    --secondary-foreground: 240 10% 20%;
+    --muted: 240 15% 96.5%;
+    --muted-foreground: 240 6% 45%;
+    --accent: 240 15% 95%;
+    --accent-foreground: 240 10% 15%;
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    --success: 152 60% 40%;
+    --warning: 38 92% 50%;
+
+    --border: 240 12% 91%;
+    --input: 240 12% 89%;
+    --ring: 245 75% 59%;
+    --radius: 0.5rem;
+
+    /* Chart palette */
+    --chart-1: 245 75% 59%;
+    --chart-2: 172 66% 45%;
+    --chart-3: 291 64% 60%;
+    --chart-4: 32 95% 55%;
+    --chart-5: 199 89% 52%;
+
+    /* Elevation — soft, layered, low-contrast (Vercel/Stripe register) */
+    --shadow-xs: 0 1px 2px 0 hsl(240 10% 10% / 0.04);
+    --shadow-sm: 0 1px 3px 0 hsl(240 10% 10% / 0.06), 0 1px 2px -1px hsl(240 10% 10% / 0.06);
+    --shadow-md: 0 4px 12px -2px hsl(240 10% 10% / 0.08), 0 2px 6px -2px hsl(240 10% 10% / 0.05);
+    --shadow-lg: 0 12px 32px -8px hsl(240 15% 12% / 0.12), 0 4px 12px -4px hsl(240 10% 10% / 0.06);
+  }
+
+  .dark {
+    --background: 240 10% 5%;
+    --foreground: 240 10% 96%;
+    --card: 240 9% 8%;
+    --card-foreground: 240 10% 96%;
+    --popover: 240 9% 9%;
+    --popover-foreground: 240 10% 96%;
+
+    --primary: 245 80% 67%;
+    --primary-foreground: 240 15% 6%;
+
+    --secondary: 240 6% 14%;
+    --secondary-foreground: 240 10% 92%;
+    --muted: 240 6% 13%;
+    --muted-foreground: 240 6% 60%;
+    --accent: 240 6% 16%;
+    --accent-foreground: 240 10% 94%;
+
+    --destructive: 0 72% 58%;
+    --destructive-foreground: 0 0% 100%;
+    --success: 152 55% 50%;
+    --warning: 38 92% 58%;
+
+    --border: 240 6% 16%;
+    --input: 240 6% 20%;
+    --ring: 245 80% 67%;
+
+    --chart-1: 245 80% 67%;
+    --chart-2: 172 60% 52%;
+    --chart-3: 291 64% 68%;
+    --chart-4: 32 95% 60%;
+    --chart-5: 199 89% 60%;
+
+    --shadow-xs: 0 1px 2px 0 hsl(0 0% 0% / 0.3);
+    --shadow-sm: 0 1px 3px 0 hsl(0 0% 0% / 0.4), 0 1px 2px -1px hsl(0 0% 0% / 0.4);
+    --shadow-md: 0 4px 12px -2px hsl(0 0% 0% / 0.5), 0 2px 6px -2px hsl(0 0% 0% / 0.4);
+    --shadow-lg: 0 12px 32px -8px hsl(0 0% 0% / 0.6), 0 4px 12px -4px hsl(0 0% 0% / 0.4);
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "cv11", "ss01";
+    text-rendering: optimizeLegibility;
+  }
+  /* Tabular figures for all data/numeric contexts */
+  .tabular-nums { font-variant-numeric: tabular-nums; }
+  h1, h2, h3, h4 { letter-spacing: -0.02em; }
+}
+
+@layer utilities {
+  /* Layered elevation utilities backed by tokens */
+  .shadow-xs { box-shadow: var(--shadow-xs); }
+  .shadow-soft { box-shadow: var(--shadow-sm); }
+  .shadow-elevated { box-shadow: var(--shadow-md); }
+  .shadow-float { box-shadow: var(--shadow-lg); }
+
+  /* Motion — quiet, purposeful */
+  .animate-fade-in { animation: fade-in 0.4s cubic-bezier(0.22, 1, 0.36, 1) both; }
+  .animate-rise { animation: rise 0.5s cubic-bezier(0.22, 1, 0.36, 1) both; }
+  .animate-scale-in { animation: scale-in 0.18s cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+  @keyframes fade-in {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes rise {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes scale-in {
+    from { opacity: 0; transform: scale(0.97); }
+    to { opacity: 1; transform: scale(1); }
+  }
+
+  /* Staggered entrance for grids/lists */
+  .stagger > * { animation: rise 0.5s cubic-bezier(0.22, 1, 0.36, 1) both; }
+  .stagger > *:nth-child(1) { animation-delay: 0.02s; }
+  .stagger > *:nth-child(2) { animation-delay: 0.06s; }
+  .stagger > *:nth-child(3) { animation-delay: 0.10s; }
+  .stagger > *:nth-child(4) { animation-delay: 0.14s; }
+  .stagger > *:nth-child(5) { animation-delay: 0.18s; }
+  .stagger > *:nth-child(6) { animation-delay: 0.22s; }
+
+  /* Subtle grid texture for hero/empty surfaces */
+  .bg-grid {
+    background-image:
+      linear-gradient(to right, hsl(var(--border) / 0.5) 1px, transparent 1px),
+      linear-gradient(to bottom, hsl(var(--border) / 0.5) 1px, transparent 1px);
+    background-size: 32px 32px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+}
+
+/* Refined scrollbars */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: hsl(var(--border)); border-radius: 6px; border: 2px solid transparent; background-clip: content-box; }
+::-webkit-scrollbar-thumb:hover { background: hsl(var(--muted-foreground) / 0.4); background-clip: content-box; }

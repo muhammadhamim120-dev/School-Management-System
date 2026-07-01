@@ -1,0 +1,253 @@
+// Prisma schema for School Management System
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  TEACHER
+  STAFF
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+}
+
+enum Status {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  LATE
+  EXCUSED
+}
+
+enum FeeStatus {
+  PAID
+  UNPAID
+  PARTIAL
+  OVERDUE
+}
+
+enum EventStatus {
+  UPCOMING
+  ONGOING
+  COMPLETED
+  CANCELLED
+}
+
+// ---------- Auth ----------
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  password      String
+  role          Role      @default(ADMIN)
+  image         String?
+  emailVerified DateTime?
+  resetToken        String?
+  resetTokenExpiry  DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+// ---------- Core academic ----------
+model Class {
+  id        String    @id @default(cuid())
+  name      String    @unique // e.g. "Grade 1"
+  capacity  Int       @default(40)
+  sections  Section[]
+  students  Student[]
+  subjects  Subject[]
+  exams     Exam[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model Section {
+  id        String    @id @default(cuid())
+  name      String    // e.g. "A"
+  class     Class     @relation(fields: [classId], references: [id], onDelete: Cascade)
+  classId   String
+  students  Student[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@unique([classId, name])
+}
+
+model Subject {
+  id          String   @id @default(cuid())
+  name        String
+  code        String   @unique
+  class       Class?   @relation(fields: [classId], references: [id], onDelete: SetNull)
+  classId     String?
+  teacher     Teacher? @relation(fields: [teacherId], references: [id], onDelete: SetNull)
+  teacherId   String?
+  results     Result[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// ---------- People ----------
+model Student {
+  id               String       @id @default(cuid())
+  studentId        String       @unique
+  fullName         String
+  photo            String?
+  gender           Gender
+  dateOfBirth      DateTime
+  bloodGroup       String?
+  phone            String?
+  email            String?
+  address          String?
+  class            Class?       @relation(fields: [classId], references: [id], onDelete: SetNull)
+  classId          String?
+  section          Section?     @relation(fields: [sectionId], references: [id], onDelete: SetNull)
+  sectionId        String?
+  rollNumber       String?
+  admissionDate    DateTime     @default(now())
+  guardianName     String?
+  parent           Parent?      @relation(fields: [parentId], references: [id], onDelete: SetNull)
+  parentId         String?
+  emergencyContact String?
+  status           Status       @default(ACTIVE)
+  attendance       Attendance[]
+  results          Result[]
+  fees             Fee[]
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+}
+
+model Teacher {
+  id            String    @id @default(cuid())
+  teacherId     String    @unique
+  fullName      String
+  photo         String?
+  department    String?
+  subject       String?
+  qualification String?
+  experience    Int?      @default(0)
+  phone         String?
+  email         String?   @unique
+  address       String?
+  joiningDate   DateTime  @default(now())
+  salary        Float?    @default(0)
+  status        Status    @default(ACTIVE)
+  subjects      Subject[]
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model Parent {
+  id               String    @id @default(cuid())
+  parentId         String    @unique
+  fullName         String
+  photo            String?
+  phone            String?
+  email            String?   @unique
+  address          String?
+  occupation       String?
+  emergencyContact String?
+  students         Student[]
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+}
+
+// ---------- Operations ----------
+model Attendance {
+  id        String           @id @default(cuid())
+  student   Student          @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  studentId String
+  date      DateTime
+  status    AttendanceStatus @default(PRESENT)
+  remark    String?
+  createdAt DateTime         @default(now())
+
+  @@unique([studentId, date])
+}
+
+model Exam {
+  id        String   @id @default(cuid())
+  name      String
+  class     Class?   @relation(fields: [classId], references: [id], onDelete: SetNull)
+  classId   String?
+  startDate DateTime
+  endDate   DateTime
+  results   Result[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Result {
+  id          String   @id @default(cuid())
+  student     Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  studentId   String
+  exam        Exam     @relation(fields: [examId], references: [id], onDelete: Cascade)
+  examId      String
+  subject     Subject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  subjectId   String
+  marks       Float
+  totalMarks  Float    @default(100)
+  grade       String?
+  createdAt   DateTime @default(now())
+
+  @@unique([studentId, examId, subjectId])
+}
+
+model Fee {
+  id          String    @id @default(cuid())
+  student     Student   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  studentId   String
+  title       String
+  amount      Float
+  paidAmount  Float     @default(0)
+  dueDate     DateTime
+  status      FeeStatus @default(UNPAID)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Notice {
+  id        String   @id @default(cuid())
+  title     String
+  content   String
+  audience  String   @default("ALL")
+  pinned    Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Event {
+  id          String      @id @default(cuid())
+  title       String
+  description String?
+  location    String?
+  startDate   DateTime
+  endDate     DateTime
+  status      EventStatus @default(UPCOMING)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+}
+
+model Setting {
+  id           String   @id @default(cuid())
+  schoolName   String   @default("Greenwood International School")
+  email        String   @default("info@greenwood.edu")
+  phone        String   @default("+1 555 0100")
+  address      String   @default("123 Education Blvd")
+  logo         String?
+  academicYear String   @default("2025-2026")
+  updatedAt    DateTime @updatedAt
+}
