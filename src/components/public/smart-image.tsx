@@ -22,6 +22,7 @@ export function SmartImage({ src, fallbackSrc = "/images/campus.svg", alt, ...re
   }, [src]);
 
   return (
+    // eslint-disable-next-line @next/next/no-img-element -- intentional: enables remote->local onError fallback
     <img
       {...rest}
       src={current}

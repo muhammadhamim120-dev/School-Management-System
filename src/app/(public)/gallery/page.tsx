@@ -20,6 +20,7 @@ export default function GalleryPage() {
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {images.map((img, i) => (
             <div key={i} className="group relative overflow-hidden rounded-xl border">
+              {/* eslint-disable-next-line @next/next/no-img-element -- gallery thumbnail, remote host */}
               <img
                 src={img.src}
                 alt={img.caption}

@@ -18,10 +18,12 @@ import { useResourceList } from "@/hooks/use-resource-list";
 import { noticeSchema, type NoticeInput } from "@/lib/validations";
 import { noticesApi } from "@/services/resources";
 import { useToast } from "@/hooks/use-toast";
+import { useI18n } from "@/components/i18n-provider";
 import { formatDate } from "@/lib/utils";
 import type { Notice } from "@/types";
 
 export default function NoticesPage() {
+  const { t } = useI18n();
   const { toast } = useToast();
   const list = useResourceList<Notice>(noticesApi.list);
   const [open, setOpen] = React.useState(false);
@@ -53,7 +55,7 @@ export default function NoticesPage() {
 
   const columns: Column<Notice>[] = [
     {
-      key: "title", header: "Title",
+      key: "title", header: t("col.title"),
       render: (n) => (
         <div className="flex items-center gap-2">
           {n.pinned && <Pin className="h-4 w-4 text-primary" />}
@@ -61,8 +63,8 @@ export default function NoticesPage() {
         </div>
       ),
     },
-    { key: "audience", header: "Audience", render: (n) => <Badge variant="secondary">{n.audience}</Badge> },
-    { key: "createdAt", header: "Date", render: (n) => formatDate(n.createdAt) },
+    { key: "audience", header: t("col.audience"), render: (n) => <Badge variant="secondary">{n.audience}</Badge> },
+    { key: "createdAt", header: t("col.date"), render: (n) => formatDate(n.createdAt) },
     {
       key: "actions", header: "", className: "text-right",
       render: (n) => (
@@ -77,9 +79,9 @@ export default function NoticesPage() {
   return (
     <div>
       <PageHeader
-        title="Notices"
-        description="Publish announcements to students, parents, and staff"
-        action={<Button onClick={() => openForm()}><Plus className="h-4 w-4" /> Add Notice</Button>}
+        title={t("page.notices.title")}
+        description={t("page.notices.desc")}
+        action={<Button onClick={() => openForm()}><Plus className="h-4 w-4" /> {t("page.notices.add")}</Button>}
       />
       <DataTable
         columns={columns} rows={list.rows} loading={list.loading} total={list.total}
@@ -91,27 +93,27 @@ export default function NoticesPage() {
         <DialogContent className="max-w-lg">
           <DialogHeader><DialogTitle>{editing ? "Edit Notice" : "Add Notice"}</DialogTitle></DialogHeader>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-            <Field label="Title" error={errors.title?.message} required>
+            <Field label={t("field.title")} error={errors.title?.message} required>
               <Input {...register("title")} />
             </Field>
-            <Field label="Content" error={errors.content?.message} required>
+            <Field label={t("field.content")} error={errors.content?.message} required>
               <Textarea rows={5} {...register("content")} />
             </Field>
             <div className="grid grid-cols-2 items-end gap-3">
-              <Field label="Audience">
+              <Field label={t("field.audience")}>
                 <Select value={watch("audience")} onValueChange={(v) => setValue("audience", v)}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="ALL">All</SelectItem>
-                    <SelectItem value="STUDENTS">Students</SelectItem>
-                    <SelectItem value="PARENTS">Parents</SelectItem>
-                    <SelectItem value="TEACHERS">Teachers</SelectItem>
+                    <SelectItem value="ALL">{t("aud.all")}</SelectItem>
+                    <SelectItem value="STUDENTS">{t("aud.students")}</SelectItem>
+                    <SelectItem value="PARENTS">{t("aud.parents")}</SelectItem>
+                    <SelectItem value="TEACHERS">{t("aud.teachers")}</SelectItem>
                   </SelectContent>
                 </Select>
               </Field>
               <div className="flex items-center gap-2 pb-2">
                 <Switch checked={watch("pinned")} onCheckedChange={(c) => setValue("pinned", c)} />
-                <span className="text-sm">Pin to top</span>
+                <span className="text-sm">{t("field.pinToTop")}</span>
               </div>
             </div>
             <DialogFooter>

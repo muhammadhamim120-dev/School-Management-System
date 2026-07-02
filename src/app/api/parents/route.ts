@@ -7,6 +7,15 @@ import { auth } from "@/lib/auth";
 export async function GET(req: NextRequest) {
   try {
     const { page, limit, search, skip } = parsePagination(req.nextUrl.searchParams);
+    const sp = req.nextUrl.searchParams;
+
+    const sortableFields = ["createdAt", "fullName", "parentId"];
+    const sortField = sp.get("sortField")?.trim() ?? "createdAt";
+    const sortDir = sp.get("sortDir")?.trim() === "asc" ? "asc" : "desc";
+    const orderBy = sortableFields.includes(sortField)
+      ? { [sortField]: sortDir as "asc" | "desc" }
+      : { createdAt: "desc" as const };
+
     const where = search
       ? {
           OR: [
@@ -18,7 +27,7 @@ export async function GET(req: NextRequest) {
         }
       : {};
     const [items, total] = await Promise.all([
-      prisma.parent.findMany({ where, skip, take: limit, orderBy: { createdAt: "desc" }, include: { students: true } }),
+      prisma.parent.findMany({ where, skip, take: limit, orderBy, include: { students: true } }),
       prisma.parent.count({ where }),
     ]);
     return ok({ items, total, page, limit, totalPages: Math.ceil(total / limit) });

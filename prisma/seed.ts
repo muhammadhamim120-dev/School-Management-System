@@ -1,5 +1,6 @@
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
+import { scoreRisk } from "../src/lib/risk";
 
 const prisma = new PrismaClient();
 
@@ -31,14 +32,49 @@ async function main() {
   const existingSetting = await prisma.setting.findFirst();
   if (!existingSetting) await prisma.setting.create({ data: {} });
 
-  // --- Classes + Sections ---
+  // --- Campuses (Bangladesh) ---
+  const mainCampus = await prisma.campus.upsert({
+    where: { code: "MAIN" },
+    update: {},
+    create: { name: "Main Campus (Dhaka)", code: "MAIN", address: "Mirpur, Dhaka-1216", phone: "+880 2 9000000", isMain: true },
+  });
+  await prisma.campus.upsert({
+    where: { code: "UTR" },
+    update: {},
+    create: { name: "Uttara Branch", code: "UTR", address: "Sector 7, Uttara, Dhaka-1230", phone: "+880 2 8900000", isMain: false },
+  });
+  console.log("✔ 2 campuses");
+
+  // --- Academic session + terms ---
+  const yearStart = new Date(new Date().getFullYear(), 0, 1);
+  const yearEnd = new Date(new Date().getFullYear(), 11, 31);
+  const session = await prisma.academicSession.upsert({
+    where: { name: String(new Date().getFullYear()) },
+    update: {},
+    create: { name: String(new Date().getFullYear()), startDate: yearStart, endDate: yearEnd, isCurrent: true },
+  });
+  const termData = [
+    { name: "First Term", startDate: new Date(new Date().getFullYear(), 0, 1), endDate: new Date(new Date().getFullYear(), 3, 30) },
+    { name: "Half Yearly", startDate: new Date(new Date().getFullYear(), 4, 1), endDate: new Date(new Date().getFullYear(), 7, 31) },
+    { name: "Annual", startDate: new Date(new Date().getFullYear(), 8, 1), endDate: new Date(new Date().getFullYear(), 11, 31) },
+  ];
+  for (const term of termData) {
+    await prisma.term.upsert({
+      where: { sessionId_name: { sessionId: session.id, name: term.name } },
+      update: {},
+      create: { ...term, sessionId: session.id },
+    });
+  }
+  console.log(`✔ 1 session, ${termData.length} terms`);
+
+  // --- Classes + Sections (Bangla medium, day shift, main campus) ---
   const classNames = ["Grade 1", "Grade 2", "Grade 3", "Grade 4", "Grade 5"];
   const classes = [];
   for (const name of classNames) {
     const c = await prisma.class.upsert({
       where: { name },
-      update: {},
-      create: { name, capacity: 40 },
+      update: { medium: "BANGLA", shift: "DAY", campusId: mainCampus.id, sessionId: session.id },
+      create: { name, capacity: 40, medium: "BANGLA", shift: "DAY", campusId: mainCampus.id, sessionId: session.id },
     });
     classes.push(c);
     for (const sec of ["A", "B"]) {
@@ -54,12 +90,12 @@ async function main() {
 
   // --- Teachers ---
   const teacherData = [
-    { fullName: "Dr. Eleanor Vance", department: "Science", subject: "Physics", qualification: "Ph.D. Physics", experience: 12 },
-    { fullName: "Mr. James Okoro", department: "Mathematics", subject: "Calculus", qualification: "M.Sc. Mathematics", experience: 8 },
-    { fullName: "Ms. Priya Nair", department: "Languages", subject: "English", qualification: "M.A. English", experience: 6 },
-    { fullName: "Mr. Daniel Cho", department: "Humanities", subject: "History", qualification: "M.A. History", experience: 10 },
-    { fullName: "Mrs. Sofia Rossi", department: "Arts", subject: "Visual Arts", qualification: "MFA", experience: 5 },
-    { fullName: "Mr. Ahmed Hassan", department: "Physical Education", subject: "Athletics", qualification: "B.Sc. Sports", experience: 7 },
+    { fullName: "Md. Abdul Karim", department: "Science", subject: "Physics", qualification: "M.Sc. Physics, B.Ed", experience: 12 },
+    { fullName: "Shirin Akter", department: "Mathematics", subject: "Mathematics", qualification: "M.Sc. Mathematics", experience: 8 },
+    { fullName: "Mohammad Rafiqul Islam", department: "Languages", subject: "Bangla", qualification: "M.A. Bangla", experience: 6 },
+    { fullName: "Nasrin Sultana", department: "Languages", subject: "English", qualification: "M.A. English", experience: 10 },
+    { fullName: "Abul Kalam Azad", department: "Religion", subject: "Islamic Studies", qualification: "Kamil", experience: 15 },
+    { fullName: "Farhana Yeasmin", department: "Science", subject: "Biology", qualification: "M.Sc. Zoology", experience: 7 },
   ];
   const teachers = [];
   for (let i = 0; i < teacherData.length; i++) {
@@ -70,11 +106,12 @@ async function main() {
       create: {
         teacherId: `TCH-${1001 + i}`,
         ...t,
-        email: `${t.fullName.split(" ").pop()!.toLowerCase()}@greenwood.edu`,
-        phone: `+1 555 01${String(10 + i).padStart(2, "0")}`,
+        email: `teacher${1001 + i}@greenwood.edu`,
+        phone: `+8801${String(800000000 + i * 111111).padStart(9, "0")}`,
         joiningDate: yearsAgo(t.experience),
-        salary: 45000 + i * 3000,
+        salary: 35000 + i * 2500,
         status: "ACTIVE",
+        campusId: mainCampus.id,
       },
     });
     teachers.push(teacher);
@@ -124,8 +161,8 @@ async function main() {
   console.log(`✔ ${parents.length} parents`);
 
   // --- Students ---
-  const firstNames = ["Emma", "Liam", "Olivia", "Noah", "Ava", "Ethan", "Sophia", "Mason", "Isabella", "Lucas", "Mia", "Jack"];
-  const lastNames = ["Smith", "Garcia", "Johnson", "Williams", "Brown", "Davis", "Miller", "Wilson", "Moore", "Taylor", "Anderson", "Thomas"];
+  const firstNames = ["Rahim", "Karim", "Ayesha", "Fatema", "Tanvir", "Nusrat", "Sadia", "Rakib", "Mim", "Sabbir", "Jannat", "Arif"];
+  const lastNames = ["Uddin", "Islam", "Akter", "Hossain", "Rahman", "Chowdhury", "Ahmed", "Khan", "Begum", "Sarkar", "Miah", "Hasan"];
   const genders: ("MALE" | "FEMALE")[] = ["MALE", "FEMALE"];
   let created = 0;
   for (let i = 0; i < 24; i++) {
@@ -141,7 +178,7 @@ async function main() {
         gender: pick(genders, i),
         dateOfBirth: yearsAgo(6 + (i % 5)),
         bloodGroup: pick(["A+", "B+", "O+", "AB+", "O-"], i),
-        phone: `+1 555 03${String(10 + i).padStart(2, "0")}`,
+        phone: `+8801${String(700000000 + i * 111111).padStart(9, "0")}`,
         email: `${fullName.split(" ")[0].toLowerCase()}${i}@student.greenwood.edu`,
         classId: cls.id,
         sectionId: sec.id,
@@ -150,6 +187,10 @@ async function main() {
         guardianName: pick(parentNames, i),
         parentId: pick(parents, i).id,
         status: "ACTIVE",
+        medium: "BANGLA",
+        shift: "DAY",
+        campusId: mainCampus.id,
+        sessionId: session.id,
       },
     });
     created++;
@@ -207,7 +248,7 @@ async function main() {
     for (let j = 0; j < subjects.length; j++) {
       const marks = 45 + ((i * 7 + j * 13) % 55);
       const pct = marks;
-      const grade = pct >= 90 ? "A+" : pct >= 80 ? "A" : pct >= 70 ? "B" : pct >= 60 ? "C" : pct >= 50 ? "D" : "F";
+      const grade = pct >= 80 ? "A+" : pct >= 70 ? "A" : pct >= 60 ? "A-" : pct >= 50 ? "B" : pct >= 40 ? "C" : pct >= 33 ? "D" : "F";
       await prisma.result.upsert({
         where: { studentId_examId_subjectId: { studentId: examStudents[i].id, examId: exam.id, subjectId: subjects[j].id } },
         update: {},
@@ -217,6 +258,268 @@ async function main() {
     }
   }
   console.log(`✔ ${resultCount} results`);
+
+  // --- Board registrations (JSC for Grade 5 students as an example cohort) ---
+  const boardStudents = await prisma.student.findMany({ where: { classId: classes[classes.length - 1].id }, take: 6 });
+  const boardNames = ["Dhaka", "Rajshahi", "Chittagong", "Comilla", "Sylhet", "Jessore"];
+  const currentYear = new Date().getFullYear();
+  let boardCount = 0;
+  for (let i = 0; i < boardStudents.length; i++) {
+    await prisma.boardRegistration.upsert({
+      where: { studentId_boardExam_examYear: { studentId: boardStudents[i].id, boardExam: "JSC", examYear: currentYear } },
+      update: {},
+      create: {
+        studentId: boardStudents[i].id,
+        boardExam: "JSC",
+        examYear: currentYear,
+        regNumber: `${currentYear}${String(100000 + i).padStart(6, "0")}`,
+        rollNumber: String(200000 + i),
+        boardName: pick(boardNames, i),
+        status: i % 3 === 0 ? "APPROVED" : i % 3 === 1 ? "REGISTERED" : "PENDING",
+      },
+    });
+    boardCount++;
+  }
+  console.log(`✔ ${boardCount} board registrations`);
+
+  // --- Finance: fee categories ---
+  const categoryData = [
+    { name: "Monthly Tuition", type: "TUITION" as const, recurrence: "MONTHLY" as const, amount: 2000 },
+    { name: "Admission Fee", type: "ADMISSION" as const, recurrence: "ONE_TIME" as const, amount: 5000 },
+    { name: "Exam Fee", type: "EXAM" as const, recurrence: "TERM" as const, amount: 800 },
+    { name: "Transport Fee", type: "TRANSPORT" as const, recurrence: "MONTHLY" as const, amount: 1200 },
+    { name: "Hostel Fee", type: "HOSTEL" as const, recurrence: "MONTHLY" as const, amount: 3500 },
+    { name: "Coaching Batch Fee", type: "COACHING" as const, recurrence: "MONTHLY" as const, amount: 1500 },
+  ];
+  const categories = [];
+  for (const c of categoryData) {
+    const cat = await prisma.feeCategory.upsert({
+      where: { name: c.name },
+      update: {},
+      create: { name: c.name, type: c.type, recurrence: c.recurrence },
+    });
+    categories.push(cat);
+    await prisma.feeStructure.create({ data: { categoryId: cat.id, amount: c.amount, label: `${c.name} — default` } });
+  }
+  console.log(`✔ ${categories.length} fee categories + structures`);
+
+  // --- Finance: invoices + payments for a sample of students ---
+  const allStudents = await prisma.student.findMany({ take: 8 });
+  const tuition = categories[0];
+  const examCat = categories[2];
+  let invCount = 0, payCount = 0;
+  for (let i = 0; i < allStudents.length; i++) {
+    const stu = allStudents[i];
+    const subtotal = 2000 + 800;
+    const discount = i % 4 === 0 ? 200 : 0;
+    const total = subtotal - discount;
+    const inv = await prisma.invoice.create({
+      data: {
+        invoiceNo: `INV-${new Date().getFullYear()}-${String(i + 1).padStart(6, "0")}`,
+        studentId: stu.id,
+        dueDate: daysFromNow(15),
+        period: `${new Date().getFullYear()}-01`,
+        subtotal, discountTotal: discount, total, paidTotal: 0,
+        status: "ISSUED",
+        items: {
+          create: [
+            { categoryId: tuition.id, description: "Monthly Tuition — January", amount: 2000, discount },
+            { categoryId: examCat.id, description: "Exam Fee — First Term", amount: 800, discount: 0 },
+          ],
+        },
+      },
+    });
+    invCount++;
+    // Pay some invoices fully, some partially, leave some unpaid
+    if (i % 3 === 0) {
+      const method = (["BKASH", "NAGAD", "CASH"] as const)[i % 3];
+      await prisma.payment.create({ data: { invoiceId: inv.id, amount: total, method, status: "SUCCESS", gateway: method === "CASH" ? null : method, gatewayRef: method === "CASH" ? null : `${method}-TXN-${1000 + i}` } });
+      await prisma.invoice.update({ where: { id: inv.id }, data: { paidTotal: total, status: "PAID" } });
+      payCount++;
+    } else if (i % 3 === 1) {
+      const part = Math.round(total / 2);
+      await prisma.payment.create({ data: { invoiceId: inv.id, amount: part, method: "BKASH", status: "SUCCESS", gateway: "BKASH", gatewayRef: `BKASH-TXN-${2000 + i}` } });
+      await prisma.invoice.update({ where: { id: inv.id }, data: { paidTotal: part, status: "PARTIAL" } });
+      payCount++;
+    }
+  }
+  console.log(`✔ ${invCount} invoices, ${payCount} payments`);
+
+  // --- Finance: concessions ---
+  if (allStudents.length > 0) {
+    await prisma.concession.create({ data: { studentId: allStudents[0].id, type: "SCHOLARSHIP", mode: "PERCENTAGE", value: 25, reason: "Merit scholarship" } });
+    await prisma.concession.create({ data: { studentId: allStudents[1]?.id ?? allStudents[0].id, type: "WAIVER", mode: "FIXED", value: 1000, reason: "Financial hardship waiver" } });
+  }
+  console.log("✔ concessions");
+
+  // --- Library ---
+  const libCategories = ["Fiction", "Science", "History", "Religion", "Children", "Reference"];
+  const catRecords: Record<string, { id: string }> = {};
+  for (const name of libCategories) {
+    catRecords[name] = await prisma.bookCategory.upsert({ where: { name }, update: {}, create: { name } });
+  }
+  const authorNames = ["Humayun Ahmed", "Kazi Nazrul Islam", "Rabindranath Tagore", "Zafar Iqbal", "Begum Rokeya"];
+  const authorRecords: Record<string, { id: string }> = {};
+  for (const name of authorNames) {
+    authorRecords[name] = await prisma.author.upsert({ where: { name }, update: {}, create: { name } });
+  }
+  const publisherNames = ["Anyaprokash", "Prothoma Prokashan", "Sheba Prokashoni", "Bangla Academy"];
+  const publisherRecords: Record<string, { id: string }> = {};
+  for (const name of publisherNames) {
+    publisherRecords[name] = await prisma.publisher.upsert({ where: { name }, update: {}, create: { name } });
+  }
+
+  const bookData = [
+    { title: "Himu", author: "Humayun Ahmed", category: "Fiction", publisher: "Anyaprokash", language: "Bangla", isbn: "9789845020301", shelf: "A", rack: "R1", copies: 3 },
+    { title: "Misir Ali Omnibus", author: "Humayun Ahmed", category: "Fiction", publisher: "Anyaprokash", language: "Bangla", isbn: "9789845020302", shelf: "A", rack: "R1", copies: 2 },
+    { title: "Sanchayita", author: "Rabindranath Tagore", category: "Reference", publisher: "Bangla Academy", language: "Bangla", isbn: "9789845020303", shelf: "B", rack: "R2", copies: 2 },
+    { title: "Bidrohi", author: "Kazi Nazrul Islam", category: "Reference", publisher: "Bangla Academy", language: "Bangla", isbn: "9789845020304", shelf: "B", rack: "R2", copies: 1 },
+    { title: "Tumi Kothay", author: "Zafar Iqbal", category: "Children", publisher: "Prothoma Prokashan", language: "Bangla", isbn: "9789845020305", shelf: "C", rack: "R3", copies: 4 },
+    { title: "Sultana's Dream", author: "Begum Rokeya", category: "Fiction", publisher: "Sheba Prokashoni", language: "English", isbn: "9789845020306", shelf: "C", rack: "R3", copies: 2 },
+  ];
+
+  let bookCount = 0, copyCount = 0;
+  const createdCopies: { id: string; bookId: string }[] = [];
+  for (const b of bookData) {
+    const book = await prisma.book.create({ data: {
+      title: b.title, isbn: b.isbn, language: b.language, shelf: b.shelf, rack: b.rack,
+      categoryId: catRecords[b.category]?.id ?? null,
+      authorId: authorRecords[b.author]?.id ?? null,
+      publisherId: publisherRecords[b.publisher]?.id ?? null,
+    }});
+    bookCount++;
+    const prefix = `BK-${book.id.slice(-4).toUpperCase()}`;
+    for (let i = 0; i < b.copies; i++) {
+      const copy = await prisma.bookCopy.create({ data: { bookId: book.id, copyCode: `${prefix}-${String(i + 1).padStart(2, "0")}` } });
+      createdCopies.push({ id: copy.id, bookId: book.id });
+      copyCount++;
+    }
+  }
+  console.log(`✔ ${bookCount} books, ${copyCount} copies`);
+
+  // Some active + returned loans
+  const libStudents = await prisma.student.findMany({ take: 4 });
+  let loanCount = 0;
+  for (let i = 0; i < Math.min(3, libStudents.length, createdCopies.length); i++) {
+    const copy = createdCopies[i];
+    const returned = i === 0;
+    await prisma.bookLoan.create({ data: {
+      copyId: copy.id, borrowerType: "STUDENT", studentId: libStudents[i].id,
+      dueDate: daysFromNow(returned ? -3 : 14),
+      status: returned ? "RETURNED" : "ISSUED",
+      returnedAt: returned ? new Date() : null,
+      fineAmount: returned ? 30 : 0, finePaid: returned,
+    }});
+    if (!returned) await prisma.bookCopy.update({ where: { id: copy.id }, data: { status: "ISSUED" } });
+    loanCount++;
+  }
+  console.log(`✔ ${loanCount} book loans`);
+
+  // --- Transport ---
+  const driver1 = await prisma.driver.create({ data: { name: "Karim Mia", phone: "01710000001", licenseNo: "DHK-1001" } });
+  const driver2 = await prisma.driver.create({ data: { name: "Rahim Uddin", phone: "01710000002", licenseNo: "DHK-1002" } });
+  const veh1 = await prisma.vehicle.create({ data: { regNumber: "DHAKA-METRO-GA-11-1234", type: "BUS", capacity: 40, driverId: driver1.id, status: "ACTIVE" } });
+  const veh2 = await prisma.vehicle.create({ data: { regNumber: "DHAKA-METRO-GA-11-5678", type: "MINIBUS", capacity: 25, driverId: driver2.id, status: "ACTIVE" } });
+  const route1 = await prisma.transportRoute.create({ data: {
+    name: "Mirpur - School", code: "R-01", fare: 1200, vehicleId: veh1.id,
+    stops: { create: [
+      { name: "Mirpur 10", sequence: 1, pickupTime: "07:00" },
+      { name: "Kazipara", sequence: 2, pickupTime: "07:15" },
+      { name: "Shewrapara", sequence: 3, pickupTime: "07:25" },
+    ] },
+  }, include: { stops: true } });
+  const route2 = await prisma.transportRoute.create({ data: {
+    name: "Uttara - School", code: "R-02", fare: 1500, vehicleId: veh2.id,
+    stops: { create: [
+      { name: "Uttara Sector 7", sequence: 1, pickupTime: "06:50" },
+      { name: "Airport", sequence: 2, pickupTime: "07:10" },
+    ] },
+  }, include: { stops: true } });
+  const transportStudents = await prisma.student.findMany({ take: 5 });
+  let assignCount = 0;
+  for (let i = 0; i < transportStudents.length; i++) {
+    const route = i % 2 === 0 ? route1 : route2;
+    await prisma.studentTransport.create({ data: {
+      studentId: transportStudents[i].id, routeId: route.id, stopId: route.stops[0]?.id ?? null, status: "ACTIVE",
+    }});
+    assignCount++;
+  }
+  console.log(`✔ 2 drivers, 2 vehicles, 2 routes, ${assignCount} transport assignments`);
+
+  // --- Hostel ---
+  const boysHostel = await prisma.hostelBuilding.create({ data: { name: "Boys Hostel A", gender: "MALE", warden: "Mr. Alam" } });
+  const girlsHostel = await prisma.hostelBuilding.create({ data: { name: "Girls Hostel B", gender: "FEMALE", warden: "Ms. Nasrin" } });
+  const room101 = await prisma.hostelRoom.create({ data: { buildingId: boysHostel.id, roomNo: "101", capacity: 4, monthlyFee: 3500, status: "AVAILABLE" } });
+  await prisma.hostelRoom.create({ data: { buildingId: boysHostel.id, roomNo: "102", capacity: 4, monthlyFee: 3500, status: "AVAILABLE" } });
+  await prisma.hostelRoom.create({ data: { buildingId: girlsHostel.id, roomNo: "201", capacity: 3, monthlyFee: 4000, status: "AVAILABLE" } });
+  const hostelStudents = await prisma.student.findMany({ take: 2 });
+  let hostelAlloc = 0;
+  for (const s of hostelStudents) {
+    await prisma.hostelAllocation.create({ data: { roomId: room101.id, studentId: s.id, status: "ACTIVE" } });
+    hostelAlloc++;
+  }
+  console.log(`✔ 2 hostel buildings, 3 rooms, ${hostelAlloc} allocations`);
+
+  // --- SMS ---
+  const tplFee = await prisma.smsTemplate.create({ data: { name: "Fee Reminder", body: "Dear guardian, the monthly fee for your child is due. Please pay by the 10th." } });
+  await prisma.smsTemplate.create({ data: { name: "Holiday Notice", body: "The school will remain closed tomorrow due to a public holiday." } });
+  await prisma.smsTemplate.create({ data: { name: "Exam Schedule", body: "Half-yearly exams begin next Sunday. Please check the routine." } });
+  await prisma.smsMessage.create({ data: {
+    title: "Fee Reminder - June", body: tplFee.body, audience: "PARENTS", status: "DRAFT", templateId: tplFee.id, totalCount: 0,
+  } });
+  console.log("✔ 3 sms templates, 1 draft message");
+
+  // --- Admissions ---
+  const admSession = await prisma.admissionSession.create({ data: {
+    name: "Admission 2026 - Class 6", year: 2026, classApplied: "Class 6", seats: 3, isOpen: true,
+    startDate: daysFromNow(-10), endDate: daysFromNow(20),
+  } });
+  await prisma.admissionSession.create({ data: {
+    name: "Admission 2026 - Class 9 (Science)", year: 2026, classApplied: "Class 9", seats: 2, isOpen: true,
+  } });
+  const applicants = [
+    { name: "Nusrat Jahan", guardian: "Abdul Karim", phone: "01710000101", score: 95, status: "SHORTLISTED" as const, cls: "Class 6" },
+    { name: "Ayesha Rahman", guardian: "Mizanur Rahman", phone: "01710000102", score: 88, status: "UNDER_REVIEW" as const, cls: "Class 6" },
+    { name: "Tanvir Hasan", guardian: "Delwar Hossain", phone: "01710000103", score: 82, status: "SUBMITTED" as const, cls: "Class 6" },
+    { name: "Sadia Islam", guardian: "Rafiqul Islam", phone: "01710000104", score: 76, status: "SUBMITTED" as const, cls: "Class 6" },
+    { name: "Rakib Ahmed", guardian: "Jashim Uddin", phone: "01710000105", score: 68, status: "WAITLISTED" as const, cls: "Class 6" },
+    { name: "Farhan Kabir", guardian: "Nurul Kabir", phone: "01710000106", score: 91, status: "SUBMITTED" as const, cls: "Class 6" },
+  ];
+  let appCount = 0;
+  for (const a of applicants) {
+    await prisma.application.create({ data: {
+      sessionId: admSession.id, applicantName: a.name, gender: "MALE", guardianName: a.guardian, guardianPhone: a.phone,
+      classApplied: a.cls, score: a.score, status: a.status, previousSchool: "Local Primary School",
+    } });
+    appCount++;
+  }
+  console.log(`✔ 2 admission sessions, ${appCount} applications`);
+
+  // --- AI Dropout Risk (rules-based) ---
+  const riskStudents = await prisma.student.findMany({ take: 8, select: { id: true } });
+  let riskCount = 0;
+  for (const rs of riskStudents) {
+    const [attendance, invoices, results] = await Promise.all([
+      prisma.attendance.groupBy({ by: ["status"], where: { studentId: rs.id }, _count: { _all: true } }),
+      prisma.invoice.findMany({ where: { studentId: rs.id }, select: { total: true, paidTotal: true, status: true } }),
+      prisma.result.findMany({ where: { studentId: rs.id }, select: { marks: true, totalMarks: true } }),
+    ]);
+    const attMap: Record<string, number> = {};
+    for (const a of attendance) attMap[a.status] = a._count._all;
+    const totalDays = Object.values(attMap).reduce((x, n) => x + n, 0);
+    const present = (attMap.PRESENT ?? 0) + (attMap.LATE ?? 0);
+    const attendanceRate = totalDays > 0 ? (present / totalDays) * 100 : null;
+    const duesAmount = invoices.filter((i: { total: number; paidTotal: number; status: string }) => i.status !== "CANCELLED" && i.status !== "PAID")
+      .reduce((x: number, i: { total: number; paidTotal: number }) => x + Math.max(0, (i.total ?? 0) - (i.paidTotal ?? 0)), 0);
+    const avgResult = results.length > 0
+      ? results.reduce((x: number, r: { marks: number; totalMarks: number }) => x + (r.marks / (r.totalMarks || 100)) * 100, 0) / results.length : null;
+    const risk = scoreRisk({ attendanceRate, duesAmount, avgResult });
+    await prisma.riskAssessment.create({ data: {
+      studentId: rs.id, score: risk.score, level: risk.level, attendanceRate, duesAmount, avgResult, factors: risk.factors.join("; "),
+    } });
+    riskCount++;
+  }
+  console.log(`✔ ${riskCount} risk assessments`);
 
   // --- Notices ---
   const notices = [

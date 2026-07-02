@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Field } from "@/components/form-field";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
+import { useI18n } from "@/components/i18n-provider";
 import { cn } from "@/lib/utils";
 import type { ParentWithStudents, StudentWithRelations } from "@/types";
 
@@ -22,6 +23,7 @@ type Props = {
 };
 
 export function ParentForm({ open, onOpenChange, parent, onSaved }: Props) {
+  const { t } = useI18n();
   const { toast } = useToast();
   const isEdit = !!parent;
   const [students, setStudents] = React.useState<StudentWithRelations[]>([]);
@@ -70,32 +72,32 @@ export function ParentForm({ open, onOpenChange, parent, onSaved }: Props) {
           <DialogTitle>{isEdit ? "Edit Parent" : "Add Parent"}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit(onSubmit)} className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <Field label="Parent ID" error={errors.parentId?.message} required>
+          <Field label={t("field.parentId")} error={errors.parentId?.message} required>
             <Input {...register("parentId")} />
           </Field>
-          <Field label="Full Name" error={errors.fullName?.message} required>
+          <Field label={t("field.fullName")} error={errors.fullName?.message} required>
             <Input {...register("fullName")} />
           </Field>
-          <Field label="Phone" error={errors.phone?.message}>
+          <Field label={t("field.phone")} error={errors.phone?.message}>
             <Input {...register("phone")} />
           </Field>
-          <Field label="Email" error={errors.email?.message}>
+          <Field label={t("field.email")} error={errors.email?.message}>
             <Input type="email" {...register("email")} />
           </Field>
-          <Field label="Occupation" error={errors.occupation?.message}>
+          <Field label={t("field.occupation")} error={errors.occupation?.message}>
             <Input {...register("occupation")} />
           </Field>
-          <Field label="Emergency Contact" error={errors.emergencyContact?.message}>
+          <Field label={t("field.emergencyContact")} error={errors.emergencyContact?.message}>
             <Input {...register("emergencyContact")} />
           </Field>
-          <Field label="Photo URL" error={errors.photo?.message} className="sm:col-span-2">
+          <Field label={t("field.photoUrl")} error={errors.photo?.message} className="sm:col-span-2">
             <Input {...register("photo")} placeholder="https://..." />
           </Field>
-          <Field label="Address" error={errors.address?.message} className="sm:col-span-2">
+          <Field label={t("field.address")} error={errors.address?.message} className="sm:col-span-2">
             <Textarea {...register("address")} />
           </Field>
           <div className="sm:col-span-2">
-            <Field label="Linked Students">
+            <Field label={t("field.linkedStudents")}>
               <div className="max-h-40 overflow-y-auto rounded-md border p-2">
                 {students.length === 0 ? (
                   <p className="px-1 py-2 text-sm text-muted-foreground">No students available</p>

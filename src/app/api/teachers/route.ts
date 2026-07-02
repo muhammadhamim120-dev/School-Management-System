@@ -7,18 +7,35 @@ import { auth } from "@/lib/auth";
 export async function GET(req: NextRequest) {
   try {
     const { page, limit, search, skip } = parsePagination(req.nextUrl.searchParams);
-    const where = search
-      ? {
-          OR: [
-            { fullName: { contains: search, mode: "insensitive" as const } },
-            { teacherId: { contains: search, mode: "insensitive" as const } },
-            { department: { contains: search, mode: "insensitive" as const } },
-            { email: { contains: search, mode: "insensitive" as const } },
-          ],
-        }
-      : {};
+    const sp = req.nextUrl.searchParams;
+
+    const status = sp.get("status")?.trim();
+    const department = sp.get("department")?.trim();
+
+    const sortableFields = ["createdAt", "fullName", "teacherId", "experience", "joiningDate"];
+    const sortField = sp.get("sortField")?.trim() ?? "createdAt";
+    const sortDir = sp.get("sortDir")?.trim() === "asc" ? "asc" : "desc";
+    const orderBy = sortableFields.includes(sortField)
+      ? { [sortField]: sortDir as "asc" | "desc" }
+      : { createdAt: "desc" as const };
+
+    const AND: Record<string, unknown>[] = [];
+    if (search) {
+      AND.push({
+        OR: [
+          { fullName: { contains: search, mode: "insensitive" as const } },
+          { teacherId: { contains: search, mode: "insensitive" as const } },
+          { department: { contains: search, mode: "insensitive" as const } },
+          { email: { contains: search, mode: "insensitive" as const } },
+        ],
+      });
+    }
+    if (status) AND.push({ status });
+    if (department) AND.push({ department });
+    const where = AND.length ? { AND } : {};
+
     const [items, total] = await Promise.all([
-      prisma.teacher.findMany({ where, skip, take: limit, orderBy: { createdAt: "desc" } }),
+      prisma.teacher.findMany({ where, skip, take: limit, orderBy }),
       prisma.teacher.count({ where }),
     ]);
     return ok({ items, total, page, limit, totalPages: Math.ceil(total / limit) });

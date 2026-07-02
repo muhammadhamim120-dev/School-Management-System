@@ -10,6 +10,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Field } from "@/components/form-field";
 import { request } from "@/services/api-client";
 import { useToast } from "@/hooks/use-toast";
+import { useI18n } from "@/components/i18n-provider";
 
 type Settings = {
   id: string;
@@ -22,6 +23,7 @@ type Settings = {
 };
 
 export default function SettingsPage() {
+  const { t } = useI18n();
   const { toast } = useToast();
   const [data, setData] = React.useState<Settings | null>(null);
   const [loading, setLoading] = React.useState(true);
@@ -53,8 +55,8 @@ export default function SettingsPage() {
   return (
     <div>
       <PageHeader
-        title="Settings"
-        description="Configure school information"
+        title={t("page.settings.title")}
+        description={t("page.settings.desc")}
         action={<Button onClick={save} disabled={saving || !data}><Save className="h-4 w-4" /> {saving ? "Saving..." : "Save Changes"}</Button>}
       />
       <Card className="max-w-2xl">

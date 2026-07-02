@@ -1,7 +1,10 @@
+"use client";
 import Link from "next/link";
 import { GraduationCap, Mail, Phone, MapPin } from "lucide-react";
+import { useI18n } from "@/components/i18n-provider";
 
 export function PublicFooter() {
+  const { t } = useI18n();
   return (
     <footer className="border-t bg-card">
       <div className="container grid gap-8 py-12 md:grid-cols-4">
@@ -13,29 +16,29 @@ export function PublicFooter() {
             Greenwood
           </Link>
           <p className="text-sm text-muted-foreground">
-            Nurturing tomorrow&apos;s leaders through excellence in education since 1998.
+            {t("footer.tagline")}
           </p>
         </div>
         <div>
-          <h4 className="mb-3 font-semibold">Quick Links</h4>
+          <h4 className="mb-3 font-semibold">{t("footer.quickLinks")}</h4>
           <ul className="space-y-2 text-sm text-muted-foreground">
-            <li><Link href="/about" className="hover:text-primary">About Us</Link></li>
-            <li><Link href="/admissions" className="hover:text-primary">Admissions</Link></li>
-            <li><Link href="/teachers" className="hover:text-primary">Faculty</Link></li>
-            <li><Link href="/gallery" className="hover:text-primary">Gallery</Link></li>
+            <li><Link href="/about" className="hover:text-primary">{t("footer.aboutUs")}</Link></li>
+            <li><Link href="/admissions" className="hover:text-primary">{t("public.admissions")}</Link></li>
+            <li><Link href="/teachers" className="hover:text-primary">{t("public.faculty")}</Link></li>
+            <li><Link href="/gallery" className="hover:text-primary">{t("public.gallery")}</Link></li>
           </ul>
         </div>
         <div>
-          <h4 className="mb-3 font-semibold">Resources</h4>
+          <h4 className="mb-3 font-semibold">{t("footer.resources")}</h4>
           <ul className="space-y-2 text-sm text-muted-foreground">
-            <li><Link href="/notices" className="hover:text-primary">Notice Board</Link></li>
-            <li><Link href="/events" className="hover:text-primary">Events</Link></li>
-            <li><Link href="/contact" className="hover:text-primary">Contact</Link></li>
-            <li><Link href="/login" className="hover:text-primary">Portal Login</Link></li>
+            <li><Link href="/notices" className="hover:text-primary">{t("footer.noticeBoard")}</Link></li>
+            <li><Link href="/events" className="hover:text-primary">{t("public.events")}</Link></li>
+            <li><Link href="/contact" className="hover:text-primary">{t("public.contact")}</Link></li>
+            <li><Link href="/login" className="hover:text-primary">{t("public.portalLogin")}</Link></li>
           </ul>
         </div>
         <div>
-          <h4 className="mb-3 font-semibold">Get in Touch</h4>
+          <h4 className="mb-3 font-semibold">{t("footer.getInTouch")}</h4>
           <ul className="space-y-2 text-sm text-muted-foreground">
             <li className="flex items-center gap-2"><MapPin className="h-4 w-4" /> 123 Education Blvd, Springfield</li>
             <li className="flex items-center gap-2"><Phone className="h-4 w-4" /> +1 555 0100</li>
@@ -44,7 +47,7 @@ export function PublicFooter() {
         </div>
       </div>
       <div className="border-t py-4 text-center text-sm text-muted-foreground">
-        © {new Date().getFullYear()} Greenwood International School. All rights reserved.
+        © {new Date().getFullYear()} Greenwood International School. {t("footer.rights")}
       </div>
     </footer>
   );

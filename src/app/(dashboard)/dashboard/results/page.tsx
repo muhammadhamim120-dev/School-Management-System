@@ -1,6 +1,6 @@
 "use client";
 import * as React from "react";
-import { Save, Award } from "lucide-react";
+import { Save, Award, FileText } from "lucide-react";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -12,19 +12,15 @@ import { Field } from "@/components/form-field";
 import { examsApi, subjectsApi, studentsApi } from "@/services/resources";
 import { request } from "@/services/api-client";
 import { useToast } from "@/hooks/use-toast";
+import { useI18n } from "@/components/i18n-provider";
+import { gradeForPercentage } from "@/lib/grading";
 import type { Exam, SubjectWithRelations, StudentWithRelations } from "@/types";
 
-function gradeFor(pct: number): string {
-  if (pct >= 90) return "A+";
-  if (pct >= 80) return "A";
-  if (pct >= 70) return "B";
-  if (pct >= 60) return "C";
-  if (pct >= 50) return "D";
-  return "F";
-}
+const gradeFor = gradeForPercentage;
 const gradeVariant = (g: string) => (g === "F" ? "destructive" : g.startsWith("A") ? "success" : "secondary");
 
 export default function ResultsPage() {
+  const { t } = useI18n();
   const { toast } = useToast();
   const [exams, setExams] = React.useState<Exam[]>([]);
   const [subjects, setSubjects] = React.useState<SubjectWithRelations[]>([]);
@@ -73,9 +69,16 @@ export default function ResultsPage() {
   return (
     <div>
       <PageHeader
-        title="Results"
-        description="Enter and manage examination results"
-        action={<Button onClick={save} disabled={saving || !canEnter}><Save className="h-4 w-4" /> {saving ? "Saving..." : "Save Results"}</Button>}
+        title={t("page.results.title")}
+        description={t("page.results.desc")}
+        action={
+          <div className="flex gap-2">
+            <Button variant="outline" asChild>
+              <a href="/dashboard/results/marksheet"><FileText className="h-4 w-4" /> Marksheet</a>
+            </Button>
+            <Button onClick={save} disabled={saving || !canEnter}><Save className="h-4 w-4" /> {saving ? "Saving..." : "Save Results"}</Button>
+          </div>
+        }
       />
       <div className="mb-4 grid gap-4 sm:grid-cols-3">
         <Field label="Exam">

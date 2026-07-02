@@ -1,5 +1,6 @@
 "use client";
 import * as React from "react";
+import { useI18n } from "@/components/i18n-provider";
 import { PageHero } from "@/components/public/page-hero";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -17,6 +18,7 @@ const info = [
 ];
 
 export default function ContactPage() {
+  const { t } = useI18n();
   const { toast } = useToast();
   const [form, setForm] = React.useState({ name: "", email: "", subject: "", message: "" });
   const [submitting, setSubmitting] = React.useState(false);
@@ -34,10 +36,10 @@ export default function ContactPage() {
 
   return (
     <>
-      <PageHero title="Contact Us" subtitle="We'd love to hear from you. Reach out with any questions." />
+      <PageHero title={t("contact.title")} subtitle={t("contact.subtitle")} />
       <section className="container grid gap-10 py-16 lg:grid-cols-2">
         <div className="space-y-6">
-          <h2 className="text-2xl font-bold">Get in Touch</h2>
+          <h2 className="text-2xl font-bold">{t("contact.getInTouch")}</h2>
           <p className="text-muted-foreground">
             Whether you&apos;re a prospective family, current parent, or community partner, our team is
             here to help.

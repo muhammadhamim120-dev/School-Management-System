@@ -1,6 +1,7 @@
 import {
   LayoutDashboard, Users, GraduationCap, UserCog, BookOpen, Library,
   CalendarCheck, FileText, Award, CreditCard, Bell, CalendarDays, Settings,
+  ClipboardList, Building2, Wallet, BookMarked, Bus, BedDouble, MessageSquare, ClipboardCheck, HeartHandshake, Activity,
 } from "lucide-react";
 
 export const navItems = [
@@ -13,6 +14,16 @@ export const navItems = [
   { label: "Attendance", href: "/dashboard/attendance", icon: CalendarCheck },
   { label: "Examinations", href: "/dashboard/exams", icon: FileText },
   { label: "Results", href: "/dashboard/results", icon: Award },
+  { label: "Board Registration", href: "/dashboard/board-registrations", icon: ClipboardList },
+  { label: "Academic Setup", href: "/dashboard/academic", icon: Building2 },
+  { label: "Finance", href: "/dashboard/finance", icon: Wallet },
+  { label: "Library", href: "/dashboard/library", icon: BookMarked },
+  { label: "Transport", href: "/dashboard/transport", icon: Bus },
+  { label: "Hostel", href: "/dashboard/hostel", icon: BedDouble },
+  { label: "SMS", href: "/dashboard/sms", icon: MessageSquare },
+  { label: "Admissions", href: "/dashboard/admissions", icon: ClipboardCheck },
+  { label: "Parent Portal", href: "/dashboard/parent-portal", icon: HeartHandshake },
+  { label: "Dropout Risk", href: "/dashboard/risk", icon: Activity },
   { label: "Fees", href: "/dashboard/fees", icon: CreditCard },
   { label: "Notices", href: "/dashboard/notices", icon: Bell },
   { label: "Events", href: "/dashboard/events", icon: CalendarDays },
@@ -41,15 +52,30 @@ export const navGroups = [
       { label: "Attendance", href: "/dashboard/attendance", icon: CalendarCheck },
       { label: "Examinations", href: "/dashboard/exams", icon: FileText },
       { label: "Results", href: "/dashboard/results", icon: Award },
+      { label: "Board Registration", href: "/dashboard/board-registrations", icon: ClipboardList },
+      { label: "Academic Setup", href: "/dashboard/academic", icon: Building2 },
     ],
   },
   {
     label: "Operations",
     items: [
+      { label: "Finance", href: "/dashboard/finance", icon: Wallet },
+      { label: "Library", href: "/dashboard/library", icon: BookMarked },
+      { label: "Transport", href: "/dashboard/transport", icon: Bus },
+      { label: "Hostel", href: "/dashboard/hostel", icon: BedDouble },
+      { label: "SMS", href: "/dashboard/sms", icon: MessageSquare },
       { label: "Fees", href: "/dashboard/fees", icon: CreditCard },
       { label: "Notices", href: "/dashboard/notices", icon: Bell },
       { label: "Events", href: "/dashboard/events", icon: CalendarDays },
       { label: "Settings", href: "/dashboard/settings", icon: Settings },
+    ],
+  },
+  {
+    label: "Engagement & Insights",
+    items: [
+      { label: "Admissions", href: "/dashboard/admissions", icon: ClipboardCheck },
+      { label: "Parent Portal", href: "/dashboard/parent-portal", icon: HeartHandshake },
+      { label: "Dropout Risk", href: "/dashboard/risk", icon: Activity },
     ],
   },
 ] as const;

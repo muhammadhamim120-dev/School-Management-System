@@ -17,6 +17,7 @@ import { useResourceList } from "@/hooks/use-resource-list";
 import { eventSchema, type EventInput } from "@/lib/validations";
 import { eventsApi } from "@/services/resources";
 import { useToast } from "@/hooks/use-toast";
+import { useI18n } from "@/components/i18n-provider";
 import { formatDate } from "@/lib/utils";
 import type { Event } from "@/types";
 
@@ -24,6 +25,7 @@ function toDateInput(d?: Date | string | null) { return d ? new Date(d).toISOStr
 const statusVariant = (s: string) => (s === "UPCOMING" ? "default" : s === "ONGOING" ? "success" : s === "CANCELLED" ? "destructive" : "secondary");
 
 export default function EventsPage() {
+  const { t } = useI18n();
   const { toast } = useToast();
   const list = useResourceList<Event>(eventsApi.list);
   const [open, setOpen] = React.useState(false);
@@ -61,11 +63,11 @@ export default function EventsPage() {
   };
 
   const columns: Column<Event>[] = [
-    { key: "title", header: "Event", render: (e) => <span className="font-medium">{e.title}</span> },
-    { key: "location", header: "Location", render: (e) => e.location ?? "—" },
-    { key: "startDate", header: "Start", render: (e) => formatDate(e.startDate) },
-    { key: "endDate", header: "End", render: (e) => formatDate(e.endDate) },
-    { key: "status", header: "Status", render: (e) => <Badge variant={statusVariant(e.status)}>{e.status}</Badge> },
+    { key: "title", header: t("col.event"), render: (e) => <span className="font-medium">{e.title}</span> },
+    { key: "location", header: t("col.location"), render: (e) => e.location ?? "—" },
+    { key: "startDate", header: t("col.start"), render: (e) => formatDate(e.startDate) },
+    { key: "endDate", header: t("col.end"), render: (e) => formatDate(e.endDate) },
+    { key: "status", header: t("col.status"), render: (e) => <Badge variant={statusVariant(e.status)}>{e.status}</Badge> },
     {
       key: "actions", header: "", className: "text-right",
       render: (e) => (
@@ -80,9 +82,9 @@ export default function EventsPage() {
   return (
     <div>
       <PageHeader
-        title="Events"
-        description="Plan and manage school events"
-        action={<Button onClick={() => openForm()}><Plus className="h-4 w-4" /> Add Event</Button>}
+        title={t("page.events.title")}
+        description={t("page.events.desc")}
+        action={<Button onClick={() => openForm()}><Plus className="h-4 w-4" /> {t("page.events.add")}</Button>}
       />
       <DataTable
         columns={columns} rows={list.rows} loading={list.loading} total={list.total}
@@ -94,31 +96,31 @@ export default function EventsPage() {
         <DialogContent className="max-w-lg">
           <DialogHeader><DialogTitle>{editing ? "Edit Event" : "Add Event"}</DialogTitle></DialogHeader>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-            <Field label="Title" error={errors.title?.message} required>
+            <Field label={t("field.title")} error={errors.title?.message} required>
               <Input {...register("title")} />
             </Field>
-            <Field label="Description" error={errors.description?.message}>
+            <Field label={t("field.description")} error={errors.description?.message}>
               <Textarea rows={3} {...register("description")} />
             </Field>
-            <Field label="Location" error={errors.location?.message}>
+            <Field label={t("field.location")} error={errors.location?.message}>
               <Input {...register("location")} />
             </Field>
             <div className="grid grid-cols-2 gap-3">
-              <Field label="Start Date" error={errors.startDate?.message} required>
+              <Field label={t("field.startDate")} error={errors.startDate?.message} required>
                 <Input type="date" {...register("startDate")} />
               </Field>
-              <Field label="End Date" error={errors.endDate?.message} required>
+              <Field label={t("field.endDate")} error={errors.endDate?.message} required>
                 <Input type="date" {...register("endDate")} />
               </Field>
             </div>
-            <Field label="Status" error={errors.status?.message}>
+            <Field label={t("field.status")} error={errors.status?.message}>
               <Select value={watch("status")} onValueChange={(v) => setValue("status", v as EventInput["status"])}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="UPCOMING">Upcoming</SelectItem>
-                  <SelectItem value="ONGOING">Ongoing</SelectItem>
-                  <SelectItem value="COMPLETED">Completed</SelectItem>
-                  <SelectItem value="CANCELLED">Cancelled</SelectItem>
+                  <SelectItem value="UPCOMING">{t("evt.upcoming")}</SelectItem>
+                  <SelectItem value="ONGOING">{t("evt.ongoing")}</SelectItem>
+                  <SelectItem value="COMPLETED">{t("evt.completed")}</SelectItem>
+                  <SelectItem value="CANCELLED">{t("evt.cancelled")}</SelectItem>
                 </SelectContent>
               </Select>
             </Field>

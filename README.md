@@ -30,6 +30,19 @@ Home, About, Admissions, Faculty, Gallery, Notice Board, Events, and Contact —
 - **Events:** manage events with status and dates.
 - **Settings:** configure school information.
 
+### Bangladesh-First Academic ERP Modules
+This system has been extended into a Bangladesh-focused academic ERP with full **Bangla/English localization** (runtime language toggle, Bangla numerals ০–৯, ৳ currency) across every page.
+
+- **Localization & Academics:** app-wide Bangla/English i18n; Bangladesh **GPA/grading engine** (A+ → F, 5.00 scale, any-fail rule); formal **report card / transcript / marksheet**; academic structure (campuses, sessions, terms, board registrations for PEC/JSC/SSC/HSC).
+- **Finance:** fee categories & structures, invoices with line items, partial payments, concessions/scholarships/waivers, analytics; **payment-gateway service layer** for bKash / Nagad / Rocket / SSLCommerz (env-var driven, no hardcoded secrets).
+- **Library:** books, categories, authors, publishers, ISBN, per-copy tracking, shelf/rack, issue/return/renew, lost & damaged handling, fine calculation & collection, student & teacher borrowing history, analytics.
+- **Transport:** drivers, vehicles, routes with stops, student assignments, fares; **GPS-ready tracking service seam** (env-var driven).
+- **Hostel:** buildings, rooms (capacity + monthly fee), capacity-aware allocations with auto room-status, vacate flow.
+- **SMS:** templates, campaigns, audience targeting (all/students/parents/teachers/custom); **provider-agnostic SMS service** for SSL Wireless / GP / Robi / generic HTTP (env-var driven; messages queue when unconfigured).
+- **Admissions:** admission sessions, online applications, status workflow, and a transparent **merit list** ranked by score with seat cutoff.
+- **Parent Portal:** a guardian view per child — attendance rate, latest-exam GPA, outstanding fees, results, invoices, transport & hostel, notices.
+- **AI Dropout Risk & Analytics:** a transparent **rules-based** risk engine (attendance 45% / dues 30% / results 25% → LOW/MEDIUM/HIGH) with explainable factors — recompute on demand.
+
 ### Authentication
 - `/login` (credentials), `/forgot-password`, `/reset-password`. Middleware protects `/dashboard/*` and redirects authenticated users away from auth pages.
 - Since no email service is configured, the "forgot password" flow returns the reset token in the response and renders a direct reset link (demo behavior — replace with real email in production).

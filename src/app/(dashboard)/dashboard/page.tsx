@@ -1,7 +1,7 @@
 "use client";
 import * as React from "react";
 import Link from "next/link";
-import { Users, GraduationCap, UserCog, Library, DollarSign, CalendarCheck, ArrowRight } from "lucide-react";
+import { Users, GraduationCap, UserCog, Library, DollarSign, CalendarCheck, ArrowRight, Plus, Bell, CalendarDays } from "lucide-react";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { StatCard } from "@/components/dashboard/stat-card";
 import { GenderPie, ClassBar } from "@/components/dashboard/charts/overview-charts";
@@ -9,7 +9,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { request } from "@/services/api-client";
-import { formatCurrency, formatDate, initials, avatarUrl } from "@/lib/utils";
+import { formatDate, initials, avatarUrl } from "@/lib/utils";
+import { useI18n } from "@/components/i18n-provider";
 
 type DashboardData = {
   stats: { students: number; teachers: number; parents: number; classes: number; revenue: number; attendanceRate: number };
@@ -64,6 +65,7 @@ function PersonRow({ name, photo, meta, right }: { name: string; photo?: string 
 }
 
 export default function DashboardHome() {
+  const { t, num, money } = useI18n();
   const [data, setData] = React.useState<DashboardData | null>(null);
   const [loading, setLoading] = React.useState(true);
 
@@ -78,19 +80,40 @@ export default function DashboardHome() {
 
   return (
     <div>
-      <PageHeader title="Dashboard" description="A real-time overview of your school at a glance." />
+      <PageHeader title={t("dashboard.title")} description={t("dashboard.subtitle")} />
+
+      {/* Quick actions */}
+      <div className="mb-6 flex flex-wrap gap-2">
+        {[
+          { label: t("quick.addStudent"), href: "/dashboard/students", icon: Plus },
+          { label: t("quick.takeAttendance"), href: "/dashboard/attendance", icon: CalendarCheck },
+          { label: t("quick.postNotice"), href: "/dashboard/notices", icon: Bell },
+          { label: t("quick.scheduleEvent"), href: "/dashboard/events", icon: CalendarDays },
+        ].map((a) => {
+          const Icon = a.icon;
+          return (
+            <Link
+              key={a.label}
+              href={a.href}
+              className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm font-medium shadow-xs transition-all hover:border-input hover:shadow-soft"
+            >
+              <Icon className="h-4 w-4 text-primary" /> {a.label}
+            </Link>
+          );
+        })}
+      </div>
 
       <div className="stagger grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
         {loading || !s ? (
           Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-[116px] rounded-xl" />)
         ) : (
           <>
-            <StatCard label="Students" value={s.students.toLocaleString()} icon={Users} hint="Enrolled" trend={{ value: "4.2%", direction: "up" }} />
-            <StatCard label="Teachers" value={s.teachers.toLocaleString()} icon={GraduationCap} hint="Active staff" />
-            <StatCard label="Parents" value={s.parents.toLocaleString()} icon={UserCog} hint="Guardians" />
-            <StatCard label="Classes" value={s.classes.toLocaleString()} icon={Library} hint="Grade levels" />
-            <StatCard label="Revenue" value={formatCurrency(s.revenue)} icon={DollarSign} hint="Collected" trend={{ value: "2.1%", direction: "up" }} />
-            <StatCard label="Attendance" value={`${s.attendanceRate}%`} icon={CalendarCheck} hint="This week" />
+            <StatCard label={t("stat.students")} value={num(s.students)} icon={Users} hint="Enrolled" trend={{ value: "4.2%", direction: "up" }} />
+            <StatCard label={t("stat.teachers")} value={num(s.teachers)} icon={GraduationCap} hint="Active staff" />
+            <StatCard label={t("stat.parents")} value={num(s.parents)} icon={UserCog} hint="Guardians" />
+            <StatCard label={t("stat.classes")} value={num(s.classes)} icon={Library} hint="Grade levels" />
+            <StatCard label={t("stat.revenue")} value={money(s.revenue)} icon={DollarSign} hint="Collected" trend={{ value: "2.1%", direction: "up" }} />
+            <StatCard label={t("stat.attendance")} value={`${num(s.attendanceRate)}%`} icon={CalendarCheck} hint="This week" />
           </>
         )}
       </div>

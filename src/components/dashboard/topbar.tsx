@@ -5,12 +5,15 @@ import { Menu, Bell, LogOut, User, Search } from "lucide-react";
 import { signOut } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { LanguageToggle } from "@/components/language-toggle";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
   DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { navItems } from "@/lib/nav";
+import { useI18n } from "@/components/i18n-provider";
+import type { MessageKey } from "@/lib/i18n/messages";
 import { initials, avatarUrl } from "@/lib/utils";
 
 type Props = {
@@ -19,16 +22,44 @@ type Props = {
   notifications?: { id: string; title: string }[];
 };
 
-function usePageTitle() {
+function usePageHref() {
   const pathname = usePathname();
   const match = [...navItems]
     .sort((a, b) => b.href.length - a.href.length)
     .find((i) => pathname === i.href || (i.href !== "/dashboard" && pathname.startsWith(i.href)));
-  return match?.label ?? "Dashboard";
+  return match?.href ?? "/dashboard";
 }
 
+const breadcrumbKey: Record<string, MessageKey> = {
+  "/dashboard": "nav.dashboard",
+  "/dashboard/students": "nav.students",
+  "/dashboard/teachers": "nav.teachers",
+  "/dashboard/parents": "nav.parents",
+  "/dashboard/classes": "nav.classes",
+  "/dashboard/subjects": "nav.subjects",
+  "/dashboard/attendance": "nav.attendance",
+  "/dashboard/exams": "nav.exams",
+  "/dashboard/results": "nav.results",
+  "/dashboard/board-registrations": "nav.boardRegistration",
+  "/dashboard/academic": "nav.academicSetup",
+  "/dashboard/finance": "nav.finance",
+  "/dashboard/library": "nav.library",
+  "/dashboard/transport": "nav.transport",
+  "/dashboard/hostel": "nav.hostel",
+  "/dashboard/sms": "nav.sms",
+  "/dashboard/admissions": "nav.admissions",
+  "/dashboard/parent-portal": "nav.parentPortal",
+  "/dashboard/risk": "nav.risk",
+  "/dashboard/fees": "nav.fees",
+  "/dashboard/notices": "nav.notices",
+  "/dashboard/events": "nav.events",
+  "/dashboard/settings": "nav.settings",
+};
+
 export function Topbar({ onMenu, user, notifications = [] }: Props) {
-  const title = usePageTitle();
+  const { t } = useI18n();
+  const href = usePageHref();
+  const title = breadcrumbKey[href] ? t(breadcrumbKey[href]) : t("nav.dashboard");
 
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-border bg-background/70 px-4 backdrop-blur-xl lg:px-6">
@@ -86,6 +117,7 @@ export function Topbar({ onMenu, user, notifications = [] }: Props) {
         </DropdownMenuContent>
       </DropdownMenu>
 
+      <LanguageToggle />
       <ThemeToggle />
 
       <DropdownMenu>

@@ -5,21 +5,24 @@ import { usePathname } from "next/navigation";
 import { GraduationCap, Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { LanguageToggle } from "@/components/language-toggle";
+import { useI18n } from "@/components/i18n-provider";
 import { cn } from "@/lib/utils";
 
 const links = [
-  { href: "/", label: "Home" },
-  { href: "/about", label: "About" },
-  { href: "/admissions", label: "Admissions" },
-  { href: "/teachers", label: "Faculty" },
-  { href: "/gallery", label: "Gallery" },
-  { href: "/notices", label: "Notices" },
-  { href: "/events", label: "Events" },
-  { href: "/contact", label: "Contact" },
+  { href: "/", key: "public.home" as const },
+  { href: "/about", key: "public.about" as const },
+  { href: "/admissions", key: "public.admissions" as const },
+  { href: "/teachers", key: "public.faculty" as const },
+  { href: "/gallery", key: "public.gallery" as const },
+  { href: "/notices", key: "public.notices" as const },
+  { href: "/events", key: "public.events" as const },
+  { href: "/contact", key: "public.contact" as const },
 ];
 
 export function PublicNavbar() {
   const pathname = usePathname();
+  const { t } = useI18n();
   const [open, setOpen] = React.useState(false);
   return (
     <header className="sticky top-0 z-40 border-b bg-background/80 backdrop-blur">
@@ -40,14 +43,15 @@ export function PublicNavbar() {
                 pathname === l.href ? "text-primary" : "text-muted-foreground"
               )}
             >
-              {l.label}
+              {t(l.key)}
             </Link>
           ))}
         </nav>
         <div className="flex items-center gap-2">
+          <LanguageToggle />
           <ThemeToggle />
           <Button asChild size="sm" className="hidden md:inline-flex">
-            <Link href="/login">Portal Login</Link>
+            <Link href="/login">{t("public.portalLogin")}</Link>
           </Button>
           <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setOpen((o) => !o)}>
             {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
@@ -64,11 +68,11 @@ export function PublicNavbar() {
                 onClick={() => setOpen(false)}
                 className="rounded-md px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-accent"
               >
-                {l.label}
+                {t(l.key)}
               </Link>
             ))}
             <Button asChild size="sm" className="mt-2">
-              <Link href="/login">Portal Login</Link>
+              <Link href="/login">{t("public.portalLogin")}</Link>
             </Button>
           </div>
         </nav>

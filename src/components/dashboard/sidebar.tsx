@@ -3,6 +3,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { GraduationCap, X } from "lucide-react";
 import { navGroups } from "@/lib/nav";
+import { useI18n } from "@/components/i18n-provider";
+import type { MessageKey } from "@/lib/i18n/messages";
 import { cn, initials, avatarUrl } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -15,6 +17,43 @@ type Props = {
 
 export function Sidebar({ open, onClose, user }: Props) {
   const pathname = usePathname();
+  const { t } = useI18n();
+
+  // Map the English nav labels (data layer) to translation keys.
+  const labelKey: Record<string, MessageKey> = {
+    "Dashboard": "nav.dashboard",
+    "Students": "nav.students",
+    "Teachers": "nav.teachers",
+    "Parents": "nav.parents",
+    "Classes": "nav.classes",
+    "Subjects": "nav.subjects",
+    "Attendance": "nav.attendance",
+    "Examinations": "nav.exams",
+    "Results": "nav.results",
+    "Board Registration": "nav.boardRegistration",
+    "Academic Setup": "nav.academicSetup",
+    "Finance": "nav.finance",
+    "Library": "nav.library",
+    "Transport": "nav.transport",
+    "Hostel": "nav.hostel",
+    "SMS": "nav.sms",
+    "Admissions": "nav.admissions",
+    "Parent Portal": "nav.parentPortal",
+    "Dropout Risk": "nav.risk",
+    "Fees": "nav.fees",
+    "Notices": "nav.notices",
+    "Events": "nav.events",
+    "Settings": "nav.settings",
+  };
+  const groupKey: Record<string, MessageKey> = {
+    "Overview": "navgroup.Overview",
+    "People": "navgroup.People",
+    "Academics": "navgroup.Academics",
+    "Operations": "navgroup.Operations",
+    "Engagement & Insights": "navgroup.Insights",
+  };
+  const tLabel = (label: string) => (labelKey[label] ? t(labelKey[label]) : label);
+  const tGroup = (label: string) => (groupKey[label] ? t(groupKey[label]) : label);
 
   const isActive = (href: string) =>
     pathname === href || (href !== "/dashboard" && pathname.startsWith(href));
@@ -50,9 +89,9 @@ export function Sidebar({ open, onClose, user }: Props) {
 
         <nav className="flex-1 space-y-6 overflow-y-auto px-3 py-4">
           {navGroups.map((group) => (
-            <div key={group.label}>
+            <div key={tGroup(group.label)}>
               <div className="mb-1.5 px-3 text-[11px] font-medium uppercase tracking-wider text-muted-foreground/70">
-                {group.label}
+                {tGroup(group.label)}
               </div>
               <div className="space-y-0.5">
                 {group.items.map((item) => {
@@ -79,7 +118,7 @@ export function Sidebar({ open, onClose, user }: Props) {
                           active ? "text-primary" : "text-muted-foreground group-hover:text-foreground"
                         )}
                       />
-                      {item.label}
+                      {tLabel(item.label)}
                     </Link>
                   );
                 })}

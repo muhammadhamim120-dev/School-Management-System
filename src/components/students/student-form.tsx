@@ -11,7 +11,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Field } from "@/components/form-field";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import type { StudentWithRelations, Class, Section, Parent } from "@/types";
+import { useI18n } from "@/components/i18n-provider";
+import type { StudentWithRelations, Class, Section, Parent, Campus, AcademicSession } from "@/types";
 
 type Props = {
   open: boolean;
@@ -20,6 +21,8 @@ type Props = {
   classes: Class[];
   sections: (Section & { classId: string })[];
   parents: Parent[];
+  campuses?: Campus[];
+  sessions?: AcademicSession[];
   onSaved: () => void;
 };
 
@@ -28,8 +31,9 @@ function toDateInput(d?: Date | string | null) {
   return new Date(d).toISOString().slice(0, 10);
 }
 
-export function StudentForm({ open, onOpenChange, student, classes, sections, parents, onSaved }: Props) {
+export function StudentForm({ open, onOpenChange, student, classes, sections, parents, campuses = [], sessions = [], onSaved }: Props) {
   const { toast } = useToast();
+  const { t } = useI18n();
   const isEdit = !!student;
   const {
     register, handleSubmit, reset, setValue, watch, formState: { errors, isSubmitting },
@@ -57,6 +61,11 @@ export function StudentForm({ open, onOpenChange, student, classes, sections, pa
         parentId: student?.parentId ?? "",
         emergencyContact: student?.emergencyContact ?? "",
         status: student?.status ?? "ACTIVE",
+        medium: student?.medium ?? undefined,
+        madrasaLevel: student?.madrasaLevel ?? undefined,
+        shift: student?.shift ?? undefined,
+        campusId: student?.campusId ?? "",
+        sessionId: student?.sessionId ?? "",
       });
     }
   }, [open, student, reset]);
@@ -83,38 +92,38 @@ export function StudentForm({ open, onOpenChange, student, classes, sections, pa
           <DialogTitle>{isEdit ? "Edit Student" : "Add Student"}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit(onSubmit)} className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <Field label="Student ID" error={errors.studentId?.message} required>
+          <Field label={t("field.studentId")} error={errors.studentId?.message} required>
             <Input {...register("studentId")} />
           </Field>
-          <Field label="Full Name" error={errors.fullName?.message} required>
+          <Field label={t("field.fullName")} error={errors.fullName?.message} required>
             <Input {...register("fullName")} />
           </Field>
-          <Field label="Gender" error={errors.gender?.message}>
+          <Field label={t("field.gender")} error={errors.gender?.message}>
             <Select value={watch("gender")} onValueChange={(v) => setValue("gender", v as StudentInput["gender"])}>
               <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="MALE">Male</SelectItem>
-                <SelectItem value="FEMALE">Female</SelectItem>
-                <SelectItem value="OTHER">Other</SelectItem>
+                <SelectItem value="MALE">{t("field.male")}</SelectItem>
+                <SelectItem value="FEMALE">{t("field.female")}</SelectItem>
+                <SelectItem value="OTHER">{t("field.other")}</SelectItem>
               </SelectContent>
             </Select>
           </Field>
-          <Field label="Date of Birth" error={errors.dateOfBirth?.message} required>
+          <Field label={t("field.dob")} error={errors.dateOfBirth?.message} required>
             <Input type="date" {...register("dateOfBirth")} />
           </Field>
-          <Field label="Blood Group" error={errors.bloodGroup?.message}>
+          <Field label={t("field.bloodGroup")} error={errors.bloodGroup?.message}>
             <Input {...register("bloodGroup")} placeholder="e.g. O+" />
           </Field>
-          <Field label="Phone" error={errors.phone?.message}>
+          <Field label={t("field.phone")} error={errors.phone?.message}>
             <Input {...register("phone")} />
           </Field>
-          <Field label="Email" error={errors.email?.message}>
+          <Field label={t("field.email")} error={errors.email?.message}>
             <Input type="email" {...register("email")} />
           </Field>
-          <Field label="Roll Number" error={errors.rollNumber?.message}>
+          <Field label={t("field.rollNumber")} error={errors.rollNumber?.message}>
             <Input {...register("rollNumber")} />
           </Field>
-          <Field label="Class" error={errors.classId?.message}>
+          <Field label={t("field.class")} error={errors.classId?.message}>
             <Select value={watch("classId") || ""} onValueChange={(v) => setValue("classId", v)}>
               <SelectTrigger><SelectValue placeholder="Select class" /></SelectTrigger>
               <SelectContent>
@@ -122,7 +131,7 @@ export function StudentForm({ open, onOpenChange, student, classes, sections, pa
               </SelectContent>
             </Select>
           </Field>
-          <Field label="Section" error={errors.sectionId?.message}>
+          <Field label={t("field.section")} error={errors.sectionId?.message}>
             <Select value={watch("sectionId") || ""} onValueChange={(v) => setValue("sectionId", v)}>
               <SelectTrigger><SelectValue placeholder="Select section" /></SelectTrigger>
               <SelectContent>
@@ -130,13 +139,13 @@ export function StudentForm({ open, onOpenChange, student, classes, sections, pa
               </SelectContent>
             </Select>
           </Field>
-          <Field label="Admission Date" error={errors.admissionDate?.message}>
+          <Field label={t("field.admissionDate")} error={errors.admissionDate?.message}>
             <Input type="date" {...register("admissionDate")} />
           </Field>
-          <Field label="Guardian Name" error={errors.guardianName?.message}>
+          <Field label={t("field.guardianName")} error={errors.guardianName?.message}>
             <Input {...register("guardianName")} />
           </Field>
-          <Field label="Parent" error={errors.parentId?.message}>
+          <Field label={t("field.parent")} error={errors.parentId?.message}>
             <Select value={watch("parentId") || ""} onValueChange={(v) => setValue("parentId", v)}>
               <SelectTrigger><SelectValue placeholder="Link parent" /></SelectTrigger>
               <SelectContent>
@@ -144,23 +153,71 @@ export function StudentForm({ open, onOpenChange, student, classes, sections, pa
               </SelectContent>
             </Select>
           </Field>
-          <Field label="Emergency Contact" error={errors.emergencyContact?.message}>
+          <Field label={t("field.emergencyContact")} error={errors.emergencyContact?.message}>
             <Input {...register("emergencyContact")} />
           </Field>
-          <Field label="Status" error={errors.status?.message}>
+          <Field label={t("field.status")} error={errors.status?.message}>
             <Select value={watch("status")} onValueChange={(v) => setValue("status", v as StudentInput["status"])}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="ACTIVE">Active</SelectItem>
-                <SelectItem value="INACTIVE">Inactive</SelectItem>
-                <SelectItem value="SUSPENDED">Suspended</SelectItem>
+                <SelectItem value="ACTIVE">{t("field.active")}</SelectItem>
+                <SelectItem value="INACTIVE">{t("field.inactive")}</SelectItem>
+                <SelectItem value="SUSPENDED">{t("field.suspended")}</SelectItem>
               </SelectContent>
             </Select>
           </Field>
-          <Field label="Photo URL" error={errors.photo?.message} className="sm:col-span-2">
+          <Field label={t("field.medium")} error={errors.medium?.message}>
+            <Select value={watch("medium") ?? ""} onValueChange={(v) => setValue("medium", v as StudentInput["medium"])}>
+              <SelectTrigger><SelectValue placeholder="Select medium" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="BANGLA">{t("medium.BANGLA")}</SelectItem>
+                <SelectItem value="ENGLISH">{t("medium.ENGLISH")}</SelectItem>
+                <SelectItem value="MADRASA">{t("medium.MADRASA")}</SelectItem>
+              </SelectContent>
+            </Select>
+          </Field>
+          {watch("medium") === "MADRASA" && (
+            <Field label={t("field.madrasaStream")} error={errors.madrasaLevel?.message}>
+              <Select value={watch("madrasaLevel") ?? ""} onValueChange={(v) => setValue("madrasaLevel", v as StudentInput["madrasaLevel"])}>
+                <SelectTrigger><SelectValue placeholder="Select stream" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="EBTEDAYEE">{t("madrasa.EBTEDAYEE")}</SelectItem>
+                  <SelectItem value="DAKHIL">{t("madrasa.DAKHIL")}</SelectItem>
+                  <SelectItem value="ALIM">{t("madrasa.ALIM")}</SelectItem>
+                </SelectContent>
+              </Select>
+            </Field>
+          )}
+          <Field label={t("field.shift")} error={errors.shift?.message}>
+            <Select value={watch("shift") ?? ""} onValueChange={(v) => setValue("shift", v as StudentInput["shift"])}>
+              <SelectTrigger><SelectValue placeholder="Select shift" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="MORNING">{t("shift.MORNING")}</SelectItem>
+                <SelectItem value="DAY">{t("shift.DAY")}</SelectItem>
+                <SelectItem value="EVENING">{t("shift.EVENING")}</SelectItem>
+              </SelectContent>
+            </Select>
+          </Field>
+          <Field label={t("field.campus")} error={errors.campusId?.message}>
+            <Select value={watch("campusId") || ""} onValueChange={(v) => setValue("campusId", v)}>
+              <SelectTrigger><SelectValue placeholder="Select campus" /></SelectTrigger>
+              <SelectContent>
+                {campuses.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </Field>
+          <Field label={t("field.session")} error={errors.sessionId?.message}>
+            <Select value={watch("sessionId") || ""} onValueChange={(v) => setValue("sessionId", v)}>
+              <SelectTrigger><SelectValue placeholder="Select session" /></SelectTrigger>
+              <SelectContent>
+                {sessions.map((s) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </Field>
+          <Field label={t("field.photoUrl")} error={errors.photo?.message} className="sm:col-span-2">
             <Input {...register("photo")} placeholder="https://..." />
           </Field>
-          <Field label="Address" error={errors.address?.message} className="sm:col-span-2">
+          <Field label={t("field.address")} error={errors.address?.message} className="sm:col-span-2">
             <Textarea {...register("address")} />
           </Field>
           <DialogFooter className="sm:col-span-2">

@@ -15,6 +15,7 @@ import { useResourceList } from "@/hooks/use-resource-list";
 import { examSchema, type ExamInput } from "@/lib/validations";
 import { examsApi, classesApi } from "@/services/resources";
 import { useToast } from "@/hooks/use-toast";
+import { useI18n } from "@/components/i18n-provider";
 import { formatDate } from "@/lib/utils";
 import type { Exam, Class } from "@/types";
 
@@ -23,6 +24,7 @@ type ExamWithClass = Exam & { class: Class | null };
 function toDateInput(d?: Date | string | null) { return d ? new Date(d).toISOString().slice(0, 10) : ""; }
 
 export default function ExamsPage() {
+  const { t } = useI18n();
   const { toast } = useToast();
   const list = useResourceList<ExamWithClass>(examsApi.list);
   const [open, setOpen] = React.useState(false);
@@ -61,10 +63,10 @@ export default function ExamsPage() {
   };
 
   const columns: Column<ExamWithClass>[] = [
-    { key: "name", header: "Exam", render: (e) => <span className="font-medium">{e.name}</span> },
-    { key: "class", header: "Class", render: (e) => e.class?.name ?? "All" },
-    { key: "startDate", header: "Start", render: (e) => formatDate(e.startDate) },
-    { key: "endDate", header: "End", render: (e) => formatDate(e.endDate) },
+    { key: "name", header: t("col.exam"), render: (e) => <span className="font-medium">{e.name}</span> },
+    { key: "class", header: t("col.class"), render: (e) => e.class?.name ?? "All" },
+    { key: "startDate", header: t("col.start"), render: (e) => formatDate(e.startDate) },
+    { key: "endDate", header: t("col.end"), render: (e) => formatDate(e.endDate) },
     {
       key: "actions", header: "", className: "text-right",
       render: (e) => (
@@ -79,9 +81,9 @@ export default function ExamsPage() {
   return (
     <div>
       <PageHeader
-        title="Examinations"
-        description="Schedule and manage examinations"
-        action={<Button onClick={() => openForm()}><Plus className="h-4 w-4" /> Add Exam</Button>}
+        title={t("page.exams.title")}
+        description={t("page.exams.desc")}
+        action={<Button onClick={() => openForm()}><Plus className="h-4 w-4" /> {t("page.exams.add")}</Button>}
       />
       <DataTable
         columns={columns} rows={list.rows} loading={list.loading} total={list.total}
@@ -93,20 +95,20 @@ export default function ExamsPage() {
         <DialogContent className="max-w-md">
           <DialogHeader><DialogTitle>{editing ? "Edit Exam" : "Add Exam"}</DialogTitle></DialogHeader>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-            <Field label="Exam Name" error={errors.name?.message} required>
+            <Field label={t("field.examName")} error={errors.name?.message} required>
               <Input {...register("name")} placeholder="e.g. Mid-Term 2025" />
             </Field>
-            <Field label="Class" error={errors.classId?.message}>
+            <Field label={t("field.class")} error={errors.classId?.message}>
               <Select value={watch("classId") || ""} onValueChange={(v) => setValue("classId", v)}>
-                <SelectTrigger><SelectValue placeholder="Select class" /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder={t("opt.selectClass")} /></SelectTrigger>
                 <SelectContent>{classes.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
               </Select>
             </Field>
             <div className="grid grid-cols-2 gap-3">
-              <Field label="Start Date" error={errors.startDate?.message} required>
+              <Field label={t("field.startDate")} error={errors.startDate?.message} required>
                 <Input type="date" {...register("startDate")} />
               </Field>
-              <Field label="End Date" error={errors.endDate?.message} required>
+              <Field label={t("field.endDate")} error={errors.endDate?.message} required>
                 <Input type="date" {...register("endDate")} />
               </Field>
             </div>

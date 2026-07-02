@@ -9,7 +9,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
     const { id } = await params;
     const student = await prisma.student.findUnique({
       where: { id },
-      include: { class: true, section: true, parent: true, attendance: true, results: true, fees: true },
+      include: { class: true, section: true, parent: true, attendance: true, results: true, fees: true, boardRegistrations: { orderBy: { examYear: "desc" } } },
     });
     if (!student) return handleError({ code: "P2025" });
     return ok(student);

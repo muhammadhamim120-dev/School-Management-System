@@ -12,6 +12,7 @@ import { Field } from "@/components/form-field";
 import { studentsApi, classesApi } from "@/services/resources";
 import { request } from "@/services/api-client";
 import { useToast } from "@/hooks/use-toast";
+import { useI18n } from "@/components/i18n-provider";
 import { cn, initials, avatarUrl } from "@/lib/utils";
 import type { StudentWithRelations, Class, Paginated } from "@/types";
 
@@ -25,6 +26,7 @@ const statusStyle: Record<AttStatus, string> = {
 };
 
 export default function AttendancePage() {
+  const { t } = useI18n();
   const { toast } = useToast();
   const [date, setDate] = React.useState(new Date().toISOString().slice(0, 10));
   const [classId, setClassId] = React.useState<string>("");
@@ -69,8 +71,8 @@ export default function AttendancePage() {
   return (
     <div>
       <PageHeader
-        title="Attendance"
-        description="Mark and manage daily student attendance"
+        title={t("page.attendance.title")}
+        description={t("page.attendance.desc")}
         action={
           <Button onClick={save} disabled={saving || students.length === 0}>
             <Save className="h-4 w-4" /> {saving ? "Saving..." : "Save Attendance"}
@@ -78,12 +80,12 @@ export default function AttendancePage() {
         }
       />
       <div className="mb-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Field label="Date">
+        <Field label={t("field.date")}>
           <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
         </Field>
-        <Field label="Class">
+        <Field label={t("field.class")}>
           <Select value={classId || "all"} onValueChange={(v) => setClassId(v === "all" ? "" : v)}>
-            <SelectTrigger><SelectValue placeholder="All classes" /></SelectTrigger>
+            <SelectTrigger><SelectValue placeholder={t("opt.allClasses")} /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All classes</SelectItem>
               {classes.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}

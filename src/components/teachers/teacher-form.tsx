@@ -11,12 +11,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { Field } from "@/components/form-field";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import type { Teacher } from "@/types";
+import { useI18n } from "@/components/i18n-provider";
+import type { Teacher, Campus } from "@/types";
 
 type Props = {
   open: boolean;
   onOpenChange: (o: boolean) => void;
   teacher?: Teacher | null;
+  campuses?: Campus[];
   onSaved: () => void;
 };
 
@@ -25,7 +27,8 @@ function toDateInput(d?: Date | string | null) {
   return new Date(d).toISOString().slice(0, 10);
 }
 
-export function TeacherForm({ open, onOpenChange, teacher, onSaved }: Props) {
+export function TeacherForm({ open, onOpenChange, teacher, campuses = [], onSaved }: Props) {
+  const { t } = useI18n();
   const { toast } = useToast();
   const isEdit = !!teacher;
   const {
@@ -48,6 +51,7 @@ export function TeacherForm({ open, onOpenChange, teacher, onSaved }: Props) {
         joiningDate: teacher?.joiningDate ? (toDateInput(teacher.joiningDate) as unknown as Date) : undefined,
         salary: teacher?.salary ?? 0,
         status: teacher?.status ?? "ACTIVE",
+        campusId: teacher?.campusId ?? "",
       });
     }
   }, [open, teacher, reset]);
@@ -71,50 +75,58 @@ export function TeacherForm({ open, onOpenChange, teacher, onSaved }: Props) {
           <DialogTitle>{isEdit ? "Edit Teacher" : "Add Teacher"}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit(onSubmit)} className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <Field label="Teacher ID" error={errors.teacherId?.message} required>
+          <Field label={t("field.teacherId")} error={errors.teacherId?.message} required>
             <Input {...register("teacherId")} />
           </Field>
-          <Field label="Full Name" error={errors.fullName?.message} required>
+          <Field label={t("field.fullName")} error={errors.fullName?.message} required>
             <Input {...register("fullName")} />
           </Field>
-          <Field label="Department" error={errors.department?.message}>
+          <Field label={t("field.department")} error={errors.department?.message}>
             <Input {...register("department")} placeholder="e.g. Science" />
           </Field>
-          <Field label="Subject" error={errors.subject?.message}>
+          <Field label={t("field.subject")} error={errors.subject?.message}>
             <Input {...register("subject")} placeholder="e.g. Physics" />
           </Field>
-          <Field label="Qualification" error={errors.qualification?.message}>
+          <Field label={t("field.qualification")} error={errors.qualification?.message}>
             <Input {...register("qualification")} placeholder="e.g. M.Sc, B.Ed" />
           </Field>
-          <Field label="Experience (years)" error={errors.experience?.message}>
+          <Field label={t("field.experience")} error={errors.experience?.message}>
             <Input type="number" min={0} {...register("experience")} />
           </Field>
-          <Field label="Phone" error={errors.phone?.message}>
+          <Field label={t("field.phone")} error={errors.phone?.message}>
             <Input {...register("phone")} />
           </Field>
-          <Field label="Email" error={errors.email?.message}>
+          <Field label={t("field.email")} error={errors.email?.message}>
             <Input type="email" {...register("email")} />
           </Field>
-          <Field label="Joining Date" error={errors.joiningDate?.message}>
+          <Field label={t("field.joiningDate")} error={errors.joiningDate?.message}>
             <Input type="date" {...register("joiningDate")} />
           </Field>
-          <Field label="Salary" error={errors.salary?.message}>
+          <Field label={t("field.salary")} error={errors.salary?.message}>
             <Input type="number" min={0} step="0.01" {...register("salary")} />
           </Field>
-          <Field label="Status" error={errors.status?.message}>
+          <Field label={t("field.status")} error={errors.status?.message}>
             <Select value={watch("status")} onValueChange={(v) => setValue("status", v as TeacherInput["status"])}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="ACTIVE">Active</SelectItem>
-                <SelectItem value="INACTIVE">Inactive</SelectItem>
-                <SelectItem value="SUSPENDED">Suspended</SelectItem>
+                <SelectItem value="ACTIVE">{t("field.active")}</SelectItem>
+                <SelectItem value="INACTIVE">{t("field.inactive")}</SelectItem>
+                <SelectItem value="SUSPENDED">{t("field.suspended")}</SelectItem>
               </SelectContent>
             </Select>
           </Field>
-          <Field label="Photo URL" error={errors.photo?.message}>
+          <Field label={t("field.campus")} error={errors.campusId?.message}>
+            <Select value={watch("campusId") || ""} onValueChange={(v) => setValue("campusId", v)}>
+              <SelectTrigger><SelectValue placeholder="Select campus" /></SelectTrigger>
+              <SelectContent>
+                {campuses.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </Field>
+          <Field label={t("field.photoUrl")} error={errors.photo?.message}>
             <Input {...register("photo")} placeholder="https://..." />
           </Field>
-          <Field label="Address" error={errors.address?.message} className="sm:col-span-2">
+          <Field label={t("field.address")} error={errors.address?.message} className="sm:col-span-2">
             <Textarea {...register("address")} />
           </Field>
           <DialogFooter className="sm:col-span-2">

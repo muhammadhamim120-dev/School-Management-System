@@ -4,7 +4,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Button } from "@/components/ui/button";
 
 export function ConfirmDialog({
-  open, onOpenChange, title = "Are you sure?", description, onConfirm, loading,
+  open, onOpenChange, title = "Are you sure?", description, onConfirm, loading, confirmLabel,
 }: {
   open: boolean;
   onOpenChange: (o: boolean) => void;
@@ -12,6 +12,7 @@ export function ConfirmDialog({
   description?: string;
   onConfirm: () => void;
   loading?: boolean;
+  confirmLabel?: string;
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -23,7 +24,7 @@ export function ConfirmDialog({
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>Cancel</Button>
           <Button variant="destructive" onClick={onConfirm} disabled={loading}>
-            {loading ? "Deleting..." : "Delete"}
+            {loading ? "Working..." : confirmLabel ?? "Delete"}
           </Button>
         </DialogFooter>
       </DialogContent>

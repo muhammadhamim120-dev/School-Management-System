@@ -16,6 +16,7 @@ import { useResourceList } from "@/hooks/use-resource-list";
 import { feeSchema, type FeeInput } from "@/lib/validations";
 import { feesApi, studentsApi } from "@/services/resources";
 import { useToast } from "@/hooks/use-toast";
+import { useI18n } from "@/components/i18n-provider";
 import { formatDate, formatCurrency } from "@/lib/utils";
 import type { Fee, StudentWithRelations } from "@/types";
 
@@ -24,6 +25,7 @@ function toDateInput(d?: Date | string | null) { return d ? new Date(d).toISOStr
 const statusVariant = (s: string) => (s === "PAID" ? "success" : s === "OVERDUE" ? "destructive" : s === "PARTIAL" ? "warning" : "secondary");
 
 export default function FeesPage() {
+  const { t } = useI18n();
   const { toast } = useToast();
   const list = useResourceList<FeeRow>(feesApi.list);
   const [open, setOpen] = React.useState(false);
@@ -64,12 +66,12 @@ export default function FeesPage() {
   };
 
   const columns: Column<FeeRow>[] = [
-    { key: "title", header: "Title", render: (f) => <span className="font-medium">{f.title}</span> },
-    { key: "student", header: "Student", render: (f) => f.student?.fullName ?? "—" },
-    { key: "amount", header: "Amount", render: (f) => formatCurrency(f.amount) },
-    { key: "paidAmount", header: "Paid", render: (f) => formatCurrency(f.paidAmount) },
-    { key: "dueDate", header: "Due", render: (f) => formatDate(f.dueDate) },
-    { key: "status", header: "Status", render: (f) => <Badge variant={statusVariant(f.status)}>{f.status}</Badge> },
+    { key: "title", header: t("col.title"), render: (f) => <span className="font-medium">{f.title}</span> },
+    { key: "student", header: t("col.student"), render: (f) => f.student?.fullName ?? "—" },
+    { key: "amount", header: t("col.amount"), render: (f) => formatCurrency(f.amount) },
+    { key: "paidAmount", header: t("col.paid"), render: (f) => formatCurrency(f.paidAmount) },
+    { key: "dueDate", header: t("col.due"), render: (f) => formatDate(f.dueDate) },
+    { key: "status", header: t("col.status"), render: (f) => <Badge variant={statusVariant(f.status)}>{f.status}</Badge> },
     {
       key: "actions", header: "", className: "text-right",
       render: (f) => (
@@ -84,9 +86,9 @@ export default function FeesPage() {
   return (
     <div>
       <PageHeader
-        title="Fees"
-        description="Track fee payments and dues"
-        action={<Button onClick={() => openForm()}><Plus className="h-4 w-4" /> Add Fee</Button>}
+        title={t("page.fees.title")}
+        description={t("page.fees.desc")}
+        action={<Button onClick={() => openForm()}><Plus className="h-4 w-4" /> {t("page.fees.add")}</Button>}
       />
       <DataTable
         columns={columns} rows={list.rows} loading={list.loading} total={list.total}
@@ -98,35 +100,35 @@ export default function FeesPage() {
         <DialogContent className="max-w-md">
           <DialogHeader><DialogTitle>{editing ? "Edit Fee" : "Add Fee"}</DialogTitle></DialogHeader>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-            <Field label="Student" error={errors.studentId?.message} required>
+            <Field label={t("col.student")} error={errors.studentId?.message} required>
               <Select value={watch("studentId") || ""} onValueChange={(v) => setValue("studentId", v)}>
-                <SelectTrigger><SelectValue placeholder="Select student" /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder={t("opt.selectStudent")} /></SelectTrigger>
                 <SelectContent>{students.map((s) => <SelectItem key={s.id} value={s.id}>{s.fullName}</SelectItem>)}</SelectContent>
               </Select>
             </Field>
-            <Field label="Title" error={errors.title?.message} required>
+            <Field label={t("field.title")} error={errors.title?.message} required>
               <Input {...register("title")} placeholder="e.g. Term 1 Tuition" />
             </Field>
             <div className="grid grid-cols-2 gap-3">
-              <Field label="Amount" error={errors.amount?.message} required>
+              <Field label={t("field.amount")} error={errors.amount?.message} required>
                 <Input type="number" min={0} step="0.01" {...register("amount")} />
               </Field>
-              <Field label="Paid Amount" error={errors.paidAmount?.message}>
+              <Field label={t("field.paidAmount")} error={errors.paidAmount?.message}>
                 <Input type="number" min={0} step="0.01" {...register("paidAmount")} />
               </Field>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <Field label="Due Date" error={errors.dueDate?.message} required>
+              <Field label={t("field.dueDate")} error={errors.dueDate?.message} required>
                 <Input type="date" {...register("dueDate")} />
               </Field>
-              <Field label="Status" error={errors.status?.message}>
+              <Field label={t("field.status")} error={errors.status?.message}>
                 <Select value={watch("status")} onValueChange={(v) => setValue("status", v as FeeInput["status"])}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="UNPAID">Unpaid</SelectItem>
-                    <SelectItem value="PARTIAL">Partial</SelectItem>
-                    <SelectItem value="PAID">Paid</SelectItem>
-                    <SelectItem value="OVERDUE">Overdue</SelectItem>
+                    <SelectItem value="UNPAID">{t("fee.unpaid")}</SelectItem>
+                    <SelectItem value="PARTIAL">{t("fee.partial")}</SelectItem>
+                    <SelectItem value="PAID">{t("fee.paid")}</SelectItem>
+                    <SelectItem value="OVERDUE">{t("fee.overdue")}</SelectItem>
                   </SelectContent>
                 </Select>
               </Field>

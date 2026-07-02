@@ -21,6 +21,7 @@ export function handleError(error: unknown) {
     const code = (error as { code: string }).code;
     if (code === "P2002") return fail("A record with this unique value already exists", 409);
     if (code === "P2025") return fail("Record not found", 404);
+    if (code === "CONFLICT") return fail((error as { message?: string }).message ?? "Conflict", 409);
   }
   console.error("[API_ERROR]", error);
   return fail("Internal server error", 500);

@@ -3,15 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { ok, created, handleError } from "@/lib/api";
 import { resultSchema } from "@/lib/validations";
 import { auth } from "@/lib/auth";
-
-function gradeFor(pct: number): string {
-  if (pct >= 90) return "A+";
-  if (pct >= 80) return "A";
-  if (pct >= 70) return "B";
-  if (pct >= 60) return "C";
-  if (pct >= 50) return "D";
-  return "F";
-}
+import { gradeForPercentage } from "@/lib/grading";
 
 export async function GET(req: NextRequest) {
   try {
@@ -32,7 +24,7 @@ export async function POST(req: NextRequest) {
   try {
     const session = await auth(); if (!session) return handleError({ code: "P2025" });
     const data = resultSchema.parse(await req.json());
-    const grade = gradeFor((data.marks / data.totalMarks) * 100);
+    const grade = gradeForPercentage((data.marks / data.totalMarks) * 100);
     const result = await prisma.result.upsert({
       where: { studentId_examId_subjectId: { studentId: data.studentId, examId: data.examId, subjectId: data.subjectId } },
       update: { marks: data.marks, totalMarks: data.totalMarks, grade },

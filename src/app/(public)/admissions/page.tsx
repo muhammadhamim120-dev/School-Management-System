@@ -1,4 +1,6 @@
+"use client";
 import Link from "next/link";
+import { useI18n } from "@/components/i18n-provider";
 import { PageHero } from "@/components/public/page-hero";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -28,13 +30,14 @@ const tuition = [
 ];
 
 export default function AdmissionsPage() {
+  const { t } = useI18n();
   return (
     <>
-      <PageHero title="Admissions" subtitle="Join a community dedicated to nurturing excellence. Here's how to apply." />
+      <PageHero title={t("adm.title")} subtitle={t("adm.subtitle")} />
 
       <section className="container py-16">
         <div className="mx-auto mb-10 max-w-2xl text-center">
-          <h2 className="text-3xl font-bold">Admission Process</h2>
+          <h2 className="text-3xl font-bold">{t("adm.process")}</h2>
           <p className="mt-3 text-muted-foreground">Four simple steps to becoming a Greenwood student.</p>
         </div>
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
@@ -59,7 +62,7 @@ export default function AdmissionsPage() {
       <section className="bg-muted/40 py-16">
         <div className="container grid gap-10 lg:grid-cols-2">
           <div>
-            <h2 className="mb-6 text-3xl font-bold">Required Documents</h2>
+            <h2 className="mb-6 text-3xl font-bold">{t("adm.documents")}</h2>
             <ul className="space-y-3">
               {requirements.map((r) => (
                 <li key={r} className="flex items-start gap-2">
@@ -70,7 +73,7 @@ export default function AdmissionsPage() {
             </ul>
           </div>
           <div>
-            <h2 className="mb-6 text-3xl font-bold">Tuition Fees</h2>
+            <h2 className="mb-6 text-3xl font-bold">{t("adm.fees")}</h2>
             <Card>
               <CardContent className="divide-y p-0">
                 {tuition.map((t) => (
@@ -89,7 +92,7 @@ export default function AdmissionsPage() {
       </section>
 
       <section className="container py-16 text-center">
-        <h2 className="text-3xl font-bold">Have Questions?</h2>
+        <h2 className="text-3xl font-bold">{t("adm.questions")}</h2>
         <p className="mx-auto mt-3 max-w-xl text-muted-foreground">
           Our admissions team is here to help you through every step of the process.
         </p>

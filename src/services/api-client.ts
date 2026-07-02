@@ -12,13 +12,28 @@ async function request<T>(url: string, options?: RequestInit): Promise<T> {
   return json.data as T;
 }
 
-export type ListParams = { page?: number; limit?: number; search?: string };
+export type ListParams = {
+  page?: number;
+  limit?: number;
+  search?: string;
+  sortField?: string;
+  sortDir?: "asc" | "desc";
+  /** Arbitrary equality filters, e.g. { status, classId, sectionId }. Empty values are ignored. */
+  filters?: Record<string, string | undefined>;
+};
 
 function qs(params?: ListParams) {
   const p = new URLSearchParams();
   if (params?.page) p.set("page", String(params.page));
   if (params?.limit) p.set("limit", String(params.limit));
   if (params?.search) p.set("search", params.search);
+  if (params?.sortField) p.set("sortField", params.sortField);
+  if (params?.sortDir) p.set("sortDir", params.sortDir);
+  if (params?.filters) {
+    for (const [key, value] of Object.entries(params.filters)) {
+      if (value) p.set(key, value);
+    }
+  }
   const s = p.toString();
   return s ? `?${s}` : "";
 }

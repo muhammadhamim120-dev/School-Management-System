@@ -14,13 +14,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Field } from "@/components/form-field";
 import { ConfirmDialog } from "@/components/dashboard/confirm-dialog";
 import { classSchema, sectionSchema, type ClassInput, type SectionInput } from "@/lib/validations";
-import { classesApi, sectionsApi } from "@/services/resources";
+import { classesApi, sectionsApi, campusesApi, sessionsApi } from "@/services/resources";
 import { useToast } from "@/hooks/use-toast";
-import type { Class, Section } from "@/types";
+import { useI18n } from "@/components/i18n-provider";
+import type { Class, Section, Campus, AcademicSession } from "@/types";
 
 type ClassWithMeta = Class & { sections: Section[]; _count: { students: number; subjects: number } };
 
 export default function ClassesPage() {
+  const { t } = useI18n();
   const { toast } = useToast();
   const [rows, setRows] = React.useState<ClassWithMeta[]>([]);
   const [loading, setLoading] = React.useState(true);
@@ -29,19 +31,32 @@ export default function ClassesPage() {
   const [editingClass, setEditingClass] = React.useState<ClassWithMeta | null>(null);
   const [deleting, setDeleting] = React.useState<ClassWithMeta | null>(null);
   const [sectionClassId, setSectionClassId] = React.useState<string>("");
+  const [campuses, setCampuses] = React.useState<Campus[]>([]);
+  const [sessions, setSessions] = React.useState<AcademicSession[]>([]);
 
   const load = React.useCallback(() => {
     setLoading(true);
     classesApi.list({ limit: 100 }).then((d) => setRows(d.items as ClassWithMeta[])).catch(() => setRows([])).finally(() => setLoading(false));
   }, []);
   React.useEffect(() => { load(); }, [load]);
+  React.useEffect(() => {
+    campusesApi.list({ limit: 100 }).then((d) => setCampuses(d.items)).catch(() => {});
+    sessionsApi.list({ limit: 100 }).then((d) => setSessions(d.items)).catch(() => {});
+  }, []);
 
   const classForm = useForm<ClassInput>({ resolver: zodResolver(classSchema) });
   const sectionForm = useForm<SectionInput>({ resolver: zodResolver(sectionSchema) });
 
   const openClass = (c?: ClassWithMeta) => {
     setEditingClass(c ?? null);
-    classForm.reset({ name: c?.name ?? "", capacity: c?.capacity ?? 40 });
+    classForm.reset({
+      name: c?.name ?? "",
+      capacity: c?.capacity ?? 40,
+      medium: c?.medium ?? undefined,
+      shift: c?.shift ?? undefined,
+      campusId: c?.campusId ?? "",
+      sessionId: c?.sessionId ?? "",
+    });
     setClassOpen(true);
   };
   const openSection = (classId: string) => {
@@ -78,9 +93,9 @@ export default function ClassesPage() {
   return (
     <div>
       <PageHeader
-        title="Classes & Sections"
-        description="Organize grade levels and their sections"
-        action={<Button onClick={() => openClass()}><Plus className="h-4 w-4" /> Add Class</Button>}
+        title={t("page.classes.title")}
+        description={t("page.classes.desc")}
+        action={<Button onClick={() => openClass()}><Plus className="h-4 w-4" /> {t("page.classes.add")}</Button>}
       />
       {loading ? (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -105,6 +120,12 @@ export default function ClassesPage() {
                   <span>{c._count?.subjects ?? 0} subjects</span>
                   <span>Cap: {c.capacity}</span>
                 </div>
+                {(c.medium || c.shift) && (
+                  <div className="flex flex-wrap gap-1.5">
+                    {c.medium && <Badge variant="secondary">{c.medium}</Badge>}
+                    {c.shift && <Badge variant="outline">{c.shift}</Badge>}
+                  </div>
+                )}
                 <div>
                   <div className="mb-2 flex items-center justify-between">
                     <span className="text-sm font-medium">Sections</span>
@@ -133,12 +154,52 @@ export default function ClassesPage() {
         <DialogContent className="max-w-md">
           <DialogHeader><DialogTitle>{editingClass ? "Edit Class" : "Add Class"}</DialogTitle></DialogHeader>
           <form onSubmit={classForm.handleSubmit(submitClass)} className="space-y-4">
-            <Field label="Class Name" error={classForm.formState.errors.name?.message} required>
+            <Field label={t("field.className")} error={classForm.formState.errors.name?.message} required>
               <Input {...classForm.register("name")} placeholder="e.g. Grade 5" />
             </Field>
-            <Field label="Capacity" error={classForm.formState.errors.capacity?.message}>
+            <Field label={t("field.capacity")} error={classForm.formState.errors.capacity?.message}>
               <Input type="number" min={1} {...classForm.register("capacity")} />
             </Field>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label={t("field.medium")} error={classForm.formState.errors.medium?.message}>
+                <Select value={classForm.watch("medium") ?? ""} onValueChange={(v) => classForm.setValue("medium", v as ClassInput["medium"])}>
+                  <SelectTrigger><SelectValue placeholder="Medium" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="BANGLA">{t("medium.BANGLA")}</SelectItem>
+                    <SelectItem value="ENGLISH">{t("medium.ENGLISH")}</SelectItem>
+                    <SelectItem value="MADRASA">{t("medium.MADRASA")}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </Field>
+              <Field label={t("field.shift")} error={classForm.formState.errors.shift?.message}>
+                <Select value={classForm.watch("shift") ?? ""} onValueChange={(v) => classForm.setValue("shift", v as ClassInput["shift"])}>
+                  <SelectTrigger><SelectValue placeholder="Shift" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="MORNING">{t("shift.MORNING")}</SelectItem>
+                    <SelectItem value="DAY">{t("shift.DAY")}</SelectItem>
+                    <SelectItem value="EVENING">{t("shift.EVENING")}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </Field>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label={t("field.campus")} error={classForm.formState.errors.campusId?.message}>
+                <Select value={classForm.watch("campusId") || ""} onValueChange={(v) => classForm.setValue("campusId", v)}>
+                  <SelectTrigger><SelectValue placeholder="Campus" /></SelectTrigger>
+                  <SelectContent>
+                    {campuses.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </Field>
+              <Field label={t("field.session")} error={classForm.formState.errors.sessionId?.message}>
+                <Select value={classForm.watch("sessionId") || ""} onValueChange={(v) => classForm.setValue("sessionId", v)}>
+                  <SelectTrigger><SelectValue placeholder="Session" /></SelectTrigger>
+                  <SelectContent>
+                    {sessions.map((s) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </Field>
+            </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setClassOpen(false)}>Cancel</Button>
               <Button type="submit">{editingClass ? "Update" : "Create"}</Button>
@@ -151,7 +212,7 @@ export default function ClassesPage() {
         <DialogContent className="max-w-md">
           <DialogHeader><DialogTitle>Add Section</DialogTitle></DialogHeader>
           <form onSubmit={sectionForm.handleSubmit(submitSection)} className="space-y-4">
-            <Field label="Class">
+            <Field label={t("field.class")}>
               <Select value={sectionClassId} onValueChange={(v) => { setSectionClassId(v); sectionForm.setValue("classId", v); }}>
                 <SelectTrigger><SelectValue placeholder="Select class" /></SelectTrigger>
                 <SelectContent>
@@ -159,7 +220,7 @@ export default function ClassesPage() {
                 </SelectContent>
               </Select>
             </Field>
-            <Field label="Section Name" error={sectionForm.formState.errors.name?.message} required>
+            <Field label={t("field.sectionName")} error={sectionForm.formState.errors.name?.message} required>
               <Input {...sectionForm.register("name")} placeholder="e.g. A" />
             </Field>
             <DialogFooter>

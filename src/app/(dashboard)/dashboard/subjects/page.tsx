@@ -15,9 +15,11 @@ import { useResourceList } from "@/hooks/use-resource-list";
 import { subjectSchema, type SubjectInput } from "@/lib/validations";
 import { subjectsApi, classesApi, teachersApi } from "@/services/resources";
 import { useToast } from "@/hooks/use-toast";
+import { useI18n } from "@/components/i18n-provider";
 import type { SubjectWithRelations, Class, Teacher } from "@/types";
 
 export default function SubjectsPage() {
+  const { t } = useI18n();
   const { toast } = useToast();
   const list = useResourceList<SubjectWithRelations>(subjectsApi.list);
   const [open, setOpen] = React.useState(false);
@@ -55,10 +57,10 @@ export default function SubjectsPage() {
   };
 
   const columns: Column<SubjectWithRelations>[] = [
-    { key: "name", header: "Subject", render: (s) => <span className="font-medium">{s.name}</span> },
-    { key: "code", header: "Code" },
-    { key: "class", header: "Class", render: (s) => s.class?.name ?? "—" },
-    { key: "teacher", header: "Teacher", render: (s) => s.teacher?.fullName ?? "—" },
+    { key: "name", header: t("col.subject"), render: (s) => <span className="font-medium">{s.name}</span> },
+    { key: "code", header: t("col.code") },
+    { key: "class", header: t("col.class"), render: (s) => s.class?.name ?? "—" },
+    { key: "teacher", header: t("col.teacher"), render: (s) => s.teacher?.fullName ?? "—" },
     {
       key: "actions", header: "", className: "text-right",
       render: (s) => (
@@ -73,9 +75,9 @@ export default function SubjectsPage() {
   return (
     <div>
       <PageHeader
-        title="Subjects"
-        description="Manage subjects and assign them to classes and teachers"
-        action={<Button onClick={() => openForm()}><Plus className="h-4 w-4" /> Add Subject</Button>}
+        title={t("page.subjects.title")}
+        description={t("page.subjects.desc")}
+        action={<Button onClick={() => openForm()}><Plus className="h-4 w-4" /> {t("page.subjects.add")}</Button>}
       />
       <DataTable
         columns={columns} rows={list.rows} loading={list.loading} total={list.total}
@@ -87,21 +89,21 @@ export default function SubjectsPage() {
         <DialogContent className="max-w-md">
           <DialogHeader><DialogTitle>{editing ? "Edit Subject" : "Add Subject"}</DialogTitle></DialogHeader>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-            <Field label="Subject Name" error={errors.name?.message} required>
+            <Field label={t("field.subjectName")} error={errors.name?.message} required>
               <Input {...register("name")} placeholder="e.g. Mathematics" />
             </Field>
-            <Field label="Code" error={errors.code?.message} required>
+            <Field label={t("field.code")} error={errors.code?.message} required>
               <Input {...register("code")} placeholder="e.g. MATH101" />
             </Field>
-            <Field label="Class" error={errors.classId?.message}>
+            <Field label={t("field.class")} error={errors.classId?.message}>
               <Select value={watch("classId") || ""} onValueChange={(v) => setValue("classId", v)}>
-                <SelectTrigger><SelectValue placeholder="Select class" /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder={t("opt.selectClass")} /></SelectTrigger>
                 <SelectContent>{classes.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
               </Select>
             </Field>
-            <Field label="Teacher" error={errors.teacherId?.message}>
+            <Field label={t("field.teacher")} error={errors.teacherId?.message}>
               <Select value={watch("teacherId") || ""} onValueChange={(v) => setValue("teacherId", v)}>
-                <SelectTrigger><SelectValue placeholder="Assign teacher" /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder={t("opt.selectTeacher")} /></SelectTrigger>
                 <SelectContent>{teachers.map((t) => <SelectItem key={t.id} value={t.id}>{t.fullName}</SelectItem>)}</SelectContent>
               </Select>
             </Field>
