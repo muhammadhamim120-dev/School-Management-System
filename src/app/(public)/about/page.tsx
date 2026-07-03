@@ -3,6 +3,7 @@ import { PageHero } from "@/components/public/page-hero";
 import { useI18n } from "@/components/i18n-provider";
 import { Target, Eye, Heart, Users } from "lucide-react";
 import { Reveal, RevealGroup, RevealItem, SectionHeading } from "@/components/public/section";
+import { Parallax } from "@/components/public/cinematic";
 
 const values = [
   { icon: Target, title: "Excellence", desc: "We pursue the highest standards in everything we do." },
@@ -18,15 +19,17 @@ export default function AboutPage() {
       <PageHero eyebrow={t("footer.aboutUs")} title={t("about.title")} subtitle={t("about.subtitle")} />
       <section className="container grid items-center gap-8 py-12 sm:gap-10 sm:py-16 lg:grid-cols-2">
         <Reveal>
-          <div className="relative">
-            <div className="pointer-events-none absolute -inset-4 rounded-[32px] bg-primary/10 blur-2xl" />
-            {/* eslint-disable-next-line @next/next/no-img-element -- static marketing image, remote host */}
-            <img
-              src="https://images.unsplash.com/photo-1562774053-701939374585?w=800&q=80"
-              alt="School building"
-              className="relative h-auto w-full rounded-3xl border border-border/60 shadow-float"
-            />
-          </div>
+          <Parallax speed={0.12}>
+            <div className="relative">
+              <div className="pointer-events-none absolute -inset-4 rounded-[32px] bg-primary/10 blur-2xl" />
+              {/* eslint-disable-next-line @next/next/no-img-element -- static marketing image, remote host */}
+              <img
+                src="https://images.unsplash.com/photo-1562774053-701939374585?w=800&q=80"
+                alt="School building"
+                className="relative h-auto w-full rounded-3xl border border-border/60 shadow-float"
+              />
+            </div>
+          </Parallax>
         </Reveal>
         <Reveal delay={0.1}>
           <div className="space-y-4">

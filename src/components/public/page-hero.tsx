@@ -1,5 +1,6 @@
 "use client";
 import { motion } from "framer-motion";
+import { BlurText } from "@/components/public/cinematic";
 
 /**
  * Cinematic interior-page hero. Sits below the fixed floating navbar (pt to
@@ -20,12 +21,12 @@ export function PageHero({ title, subtitle, eyebrow }: { title: string; subtitle
             {eyebrow}
           </motion.div>
         )}
-        <motion.h1
-          initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+        <BlurText
+          as="h1"
+          text={title}
+          once={false}
           className="mx-auto max-w-3xl text-3xl font-semibold tracking-tight sm:text-4xl md:text-5xl lg:text-6xl"
-        >
-          {title}
-        </motion.h1>
+        />
         {subtitle && (
           <motion.p
             initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
