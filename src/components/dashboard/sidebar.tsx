@@ -33,6 +33,7 @@ export function Sidebar({ open, onClose, user }: Props) {
     "Board Registration": "nav.boardRegistration",
     "Academic Setup": "nav.academicSetup",
     "Finance": "nav.finance",
+    "Payments": "nav.payments",
     "Library": "nav.library",
     "Transport": "nav.transport",
     "Hostel": "nav.hostel",
@@ -68,7 +69,9 @@ export function Sidebar({ open, onClose, user }: Props) {
       )}
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-50 flex w-[260px] flex-col border-r border-border bg-card transition-transform duration-200 ease-out lg:static lg:translate-x-0",
+          "fixed inset-y-0 left-0 z-50 flex w-[260px] flex-col transition-transform duration-300 ease-out lg:sticky lg:top-0 lg:h-screen lg:translate-x-0",
+          "lg:m-3 lg:h-[calc(100vh-1.5rem)] lg:w-[248px] lg:rounded-2xl lg:border lg:border-border/60 glass lg:shadow-float",
+          "border-r border-border bg-card lg:border-r-0",
           open ? "translate-x-0" : "-translate-x-full"
         )}
       >
@@ -103,14 +106,14 @@ export function Sidebar({ open, onClose, user }: Props) {
                       href={item.href}
                       onClick={onClose}
                       className={cn(
-                        "group relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors duration-150",
+                        "group relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium press transition-all duration-150",
                         active
-                          ? "bg-accent text-foreground"
+                          ? "bg-accent text-foreground shadow-xs"
                           : "text-muted-foreground hover:bg-accent/60 hover:text-foreground"
                       )}
                     >
                       {active && (
-                        <span className="absolute inset-y-1.5 left-0 w-0.5 rounded-full bg-primary" />
+                        <span className="absolute inset-y-1.5 left-0 w-[3px] rounded-full bg-primary" />
                       )}
                       <Icon
                         className={cn(

@@ -33,14 +33,38 @@ export type VerifyPaymentResult =
   | { ok: true; status: "SUCCESS" | "PENDING" | "FAILED"; gatewayRef: string; amount?: number }
   | { ok: false; error: string };
 
+export type RefundPaymentInput = {
+  gatewayRef: string;
+  amount: number;
+  reason?: string;
+};
+
+export type RefundPaymentResult =
+  | { ok: true; refundRef: string; amount: number }
+  | { ok: false; error: string };
+
+/** Result of verifying an incoming webhook's authenticity. */
+export type WebhookVerifyResult =
+  | { ok: true; gatewayRef: string; status: "SUCCESS" | "PENDING" | "FAILED"; amount?: number; invoiceId?: string }
+  | { ok: false; error: string };
+
 export interface PaymentGatewayProvider {
   readonly id: GatewayId;
   /** True when all required env vars are present. */
   isConfigured(): boolean;
+  /** The env var names this provider needs (for the settings page). */
+  requiredEnv(): string[];
   /** Begin a payment; returns a redirect URL for the hosted checkout. */
   initiate(input: InitiatePaymentInput): Promise<InitiatePaymentResult>;
   /** Verify/settle a payment by its gateway reference. */
   verify(gatewayRef: string): Promise<VerifyPaymentResult>;
+  /** Refund (full or partial) a settled payment. */
+  refund(input: RefundPaymentInput): Promise<RefundPaymentResult>;
+  /**
+   * Authenticate & parse an incoming webhook. Implementations must validate the
+   * signature/secret before trusting the payload. Returns normalized fields.
+   */
+  parseWebhook(headers: Record<string, string>, rawBody: string): Promise<WebhookVerifyResult>;
 }
 
 /** Small helper for providers: read an env var, tracking which are missing. */

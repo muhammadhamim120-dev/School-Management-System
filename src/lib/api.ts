@@ -24,7 +24,10 @@ export function handleError(error: unknown) {
     if (code === "CONFLICT") return fail((error as { message?: string }).message ?? "Conflict", 409);
   }
   console.error("[API_ERROR]", error);
-  return fail("Internal server error", 500);
+  // Surface the real exception so 500s are diagnosable instead of opaque.
+  const message = error instanceof Error ? error.message : String(error);
+  const name = error instanceof Error ? error.name : typeof error;
+  return fail("Internal server error", 500, { name, message });
 }
 
 export function parsePagination(searchParams: URLSearchParams) {

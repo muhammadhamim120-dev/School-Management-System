@@ -14,12 +14,21 @@ export function getPaymentGateway(id: GatewayId): PaymentGatewayProvider {
   return registry[id];
 }
 
-/** Report which gateways are configured — useful for the UI to show availability. */
-export function gatewayAvailability(): { id: GatewayId; configured: boolean }[] {
+export function isGatewayId(v: string): v is GatewayId {
+  return v === "BKASH" || v === "NAGAD" || v === "ROCKET" || v === "SSLCOMMERZ";
+}
+
+/** Report which gateways are configured + their required env vars (for settings UI). */
+export function gatewayAvailability(): { id: GatewayId; configured: boolean; requiredEnv: string[] }[] {
   return (Object.keys(registry) as GatewayId[]).map((id) => ({
     id,
     configured: registry[id].isConfigured(),
+    requiredEnv: registry[id].requiredEnv(),
   }));
 }
 
-export type { GatewayId, PaymentGatewayProvider } from "./types";
+export type {
+  GatewayId, PaymentGatewayProvider,
+  InitiatePaymentInput, InitiatePaymentResult,
+  VerifyPaymentResult, RefundPaymentInput, RefundPaymentResult, WebhookVerifyResult,
+} from "./types";

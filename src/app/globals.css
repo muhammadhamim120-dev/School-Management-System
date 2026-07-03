@@ -31,7 +31,11 @@
     --border: 240 12% 91%;
     --input: 240 12% 89%;
     --ring: 245 75% 59%;
-    --radius: 0.5rem;
+    --radius: 0.75rem;
+
+    /* Glass surfaces (Apple/Vercel register) */
+    --glass-bg: 0 0% 100% / 0.72;
+    --glass-border: 240 12% 91% / 0.6;
 
     /* Chart palette */
     --chart-1: 245 75% 59%;
@@ -74,6 +78,9 @@
     --input: 240 6% 20%;
     --ring: 245 80% 67%;
 
+    --glass-bg: 240 9% 8% / 0.68;
+    --glass-border: 240 6% 24% / 0.5;
+
     --chart-1: 245 80% 67%;
     --chart-2: 172 60% 52%;
     --chart-3: 291 64% 68%;
@@ -96,6 +103,7 @@
     font-family: var(--font-sans), var(--font-bangla), system-ui, sans-serif;
     font-feature-settings: "cv11", "ss01";
     text-rendering: optimizeLegibility;
+    scroll-behavior: smooth;
   }
   /* Tabular figures for all data/numeric contexts */
   .tabular-nums { font-variant-numeric: tabular-nums; }
@@ -143,6 +151,111 @@
       linear-gradient(to bottom, hsl(var(--border) / 0.5) 1px, transparent 1px);
     background-size: 32px 32px;
   }
+
+  /* Glassmorphism — frosted surfaces for bars, popovers, overlays */
+  .glass {
+    background: hsl(var(--glass-bg));
+    backdrop-filter: saturate(180%) blur(20px);
+    -webkit-backdrop-filter: saturate(180%) blur(20px);
+    border: 1px solid hsl(var(--glass-border));
+  }
+  .glass-subtle {
+    background: hsl(var(--glass-bg));
+    backdrop-filter: saturate(160%) blur(12px);
+    -webkit-backdrop-filter: saturate(160%) blur(12px);
+  }
+
+  /* Micro-interaction: hover lift for cards & tiles */
+  .lift {
+    transition: transform 0.22s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.22s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.22s ease;
+  }
+  .lift:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+  }
+  .press { transition: transform 0.1s ease; }
+  .press:active { transform: scale(0.97); }
+
+  /* Gradient text accent (Stripe/Linear headline register) */
+  .text-gradient {
+    background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--chart-3)) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  /* Shimmer loading skeleton — richer than a flat pulse */
+  .shimmer {
+    position: relative;
+    overflow: hidden;
+    background: hsl(var(--muted));
+  }
+  .shimmer::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    transform: translateX(-100%);
+    background: linear-gradient(90deg, transparent, hsl(var(--foreground) / 0.06), transparent);
+    animation: shimmer 1.6s infinite;
+  }
+  @keyframes shimmer { 100% { transform: translateX(100%); } }
+
+  /* Ring-accent focus for interactive surfaces */
+  .focus-ring:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px hsl(var(--background)), 0 0 0 4px hsl(var(--ring) / 0.5);
+  }
+
+  /* Aurora animated background blobs (Antigravity/Arc register) */
+  .aurora-blob {
+    position: absolute;
+    border-radius: 9999px;
+    filter: blur(80px);
+    opacity: 0.5;
+    will-change: transform;
+    transform: translate(var(--px, 0px), var(--py, 0px));
+  }
+  .aurora-1 {
+    width: 42vw; height: 42vw; top: -12vw; left: -8vw;
+    background: radial-gradient(circle at 30% 30%, hsl(245 80% 62% / 0.55), transparent 70%);
+    animation: aurora-drift-1 26s ease-in-out infinite alternate;
+  }
+  .aurora-2 {
+    width: 38vw; height: 38vw; top: 20vh; right: -10vw;
+    background: radial-gradient(circle at 60% 40%, hsl(291 64% 62% / 0.45), transparent 70%);
+    animation: aurora-drift-2 32s ease-in-out infinite alternate;
+  }
+  .aurora-3 {
+    width: 36vw; height: 36vw; bottom: -14vw; left: 24vw;
+    background: radial-gradient(circle at 50% 50%, hsl(172 66% 48% / 0.4), transparent 70%);
+    animation: aurora-drift-3 30s ease-in-out infinite alternate;
+  }
+  .dark .aurora-blob { opacity: 0.32; }
+  @keyframes aurora-drift-1 { to { transform: translate(calc(var(--px,0px) + 8vw), calc(var(--py,0px) + 6vh)) scale(1.1); } }
+  @keyframes aurora-drift-2 { to { transform: translate(calc(var(--px,0px) - 6vw), calc(var(--py,0px) + 8vh)) scale(1.05); } }
+  @keyframes aurora-drift-3 { to { transform: translate(calc(var(--px,0px) + 4vw), calc(var(--py,0px) - 6vh)) scale(1.12); } }
+
+  /* Ripple micro-interaction */
+  .ripple-host { position: relative; overflow: hidden; }
+  .ripple {
+    position: absolute; border-radius: 9999px; transform: scale(0);
+    background: currentColor; opacity: 0.28; pointer-events: none;
+    animation: ripple 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  @keyframes ripple { to { transform: scale(2.4); opacity: 0; } }
+
+  /* Hover glow halo */
+  .glow { position: relative; }
+  .glow::before {
+    content: ""; position: absolute; inset: -1px; border-radius: inherit;
+    background: linear-gradient(135deg, hsl(var(--primary) / 0.5), hsl(var(--chart-3) / 0.4));
+    opacity: 0; transition: opacity 0.3s ease; z-index: -1; filter: blur(10px);
+  }
+  .glow:hover::before { opacity: 1; }
+
+  /* Staggered table row entrance */
+  .row-enter { animation: row-enter 0.4s cubic-bezier(0.22, 1, 0.36, 1) both; }
+  @keyframes row-enter { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 }
 
 @media (prefers-reduced-motion: reduce) {

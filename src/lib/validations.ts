@@ -326,9 +326,11 @@ export type HostelAllocationInput = z.infer<typeof hostelAllocationSchema>;
 
 // ---------- SMS ----------
 const smsAudienceEnum = z.enum(["ALL", "STUDENTS", "PARENTS", "TEACHERS", "CUSTOM"]);
+const smsCategoryEnum = z.enum(["GENERAL", "ATTENDANCE", "FEE_REMINDER", "RESULT", "HOLIDAY", "EMERGENCY", "ADMISSION", "OTP"]);
 
 export const smsTemplateSchema = z.object({
   name: z.string().min(1, "Name is required"),
+  category: smsCategoryEnum.default("GENERAL"),
   body: z.string().min(1, "Body is required"),
 });
 export type SmsTemplateInput = z.infer<typeof smsTemplateSchema>;
@@ -341,6 +343,7 @@ const smsRecipientSchema = z.object({
 export const smsMessageSchema = z.object({
   title: optionalString,
   body: z.string().min(1, "Message body is required"),
+  category: smsCategoryEnum.default("GENERAL"),
   audience: smsAudienceEnum.default("CUSTOM"),
   templateId: optionalString,
   // For CUSTOM audience, explicit recipients; for others, resolved server-side.

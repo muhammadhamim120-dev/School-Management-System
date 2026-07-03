@@ -43,6 +43,7 @@ const breadcrumbKey: Record<string, MessageKey> = {
   "/dashboard/board-registrations": "nav.boardRegistration",
   "/dashboard/academic": "nav.academicSetup",
   "/dashboard/finance": "nav.finance",
+  "/dashboard/payments": "nav.payments",
   "/dashboard/library": "nav.library",
   "/dashboard/transport": "nav.transport",
   "/dashboard/hostel": "nav.hostel",
@@ -62,7 +63,7 @@ export function Topbar({ onMenu, user, notifications = [] }: Props) {
   const title = breadcrumbKey[href] ? t(breadcrumbKey[href]) : t("nav.dashboard");
 
   return (
-    <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-border bg-background/70 px-4 backdrop-blur-xl lg:px-6">
+    <header className="glass-subtle sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-border/60 bg-background/70 px-4 lg:px-6">
       <Button variant="ghost" size="icon" className="lg:hidden" onClick={onMenu}>
         <Menu className="h-5 w-5" />
       </Button>
@@ -76,10 +77,11 @@ export function Topbar({ onMenu, user, notifications = [] }: Props) {
 
       <div className="flex-1" />
 
-      {/* Search affordance (command-palette style) */}
+      {/* Search affordance — opens the ⌘K command palette */}
       <button
         type="button"
-        className="hidden items-center gap-2 rounded-lg border border-border bg-card px-3 py-1.5 text-sm text-muted-foreground shadow-xs transition-colors hover:bg-accent md:flex"
+        onClick={() => window.dispatchEvent(new Event("open-command-palette"))}
+        className="press hidden items-center gap-2 rounded-lg border border-border/60 bg-card/60 px-3 py-1.5 text-sm text-muted-foreground shadow-xs transition-colors hover:bg-accent md:flex"
       >
         <Search className="h-4 w-4" />
         <span>Search…</span>

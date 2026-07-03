@@ -10,6 +10,7 @@ import type {
   SmsTemplate, SmsMessageWithRelations,
   SessionWithCount, ApplicationWithSession,
   RiskAssessmentWithStudent,
+  PaymentTransaction,
 } from "@/types";
 import type {
   StudentInput, TeacherInput, ParentInput, ClassInput, SectionInput, SubjectInput,
@@ -76,3 +77,6 @@ export const applicationsApi = createResource<ApplicationWithSession, Applicatio
 
 // Risk (read-only list; compute via dedicated endpoint)
 export const riskAssessmentsApi = createResource<RiskAssessmentWithStudent, never>("risk-assessments");
+
+// Payment transaction logs (read-only)
+export const paymentTransactionsApi = createResource<PaymentTransaction, never>("payment-transactions");

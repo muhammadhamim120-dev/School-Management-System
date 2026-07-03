@@ -77,11 +77,18 @@ export async function POST(req: NextRequest) {
     }
 
     const message = await prisma.smsMessage.create({ data: {
-      title: data.title || null, body: data.body, audience: data.audience, templateId: data.templateId || null,
+      title: data.title || null, body: data.body, category: data.category, audience: data.audience, templateId: data.templateId || null,
       status, provider: providerId, sentAt, totalCount: recipients.length, sentCount, failedCount,
       recipients: { create: recipients.map((r) => {
         const rs = recipientStatuses.get(r.phone);
-        return { name: r.name, phone: r.phone, status: rs?.status ?? (status === "QUEUED" ? "QUEUED" : "QUEUED"), error: rs?.error ?? null };
+        const attempted = data.send && provider.isConfigured();
+        return {
+          name: r.name, phone: r.phone,
+          status: rs?.status ?? "QUEUED",
+          error: rs?.error ?? null,
+          attempts: attempted ? 1 : 0,
+          lastAttemptAt: attempted ? new Date() : null,
+        };
       }) },
     }, include: { template: true, _count: { select: { recipients: true } } } });
 

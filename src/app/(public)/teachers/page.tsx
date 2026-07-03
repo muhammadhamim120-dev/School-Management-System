@@ -1,8 +1,8 @@
 import { PageHero } from "@/components/public/page-hero";
-import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { prisma } from "@/lib/prisma";
 import { initials, avatarUrl } from "@/lib/utils";
+import { Reveal } from "@/components/public/section";
 
 export const dynamic = "force-dynamic";
 
@@ -34,23 +34,24 @@ export default async function TeachersPage() {
   const faculty = await getFaculty();
   return (
     <>
-      <PageHero title="Our Faculty" subtitle="Meet the dedicated educators who make Greenwood exceptional." />
-      <section className="container py-16">
+      <PageHero eyebrow="Our people" title="Our Faculty" subtitle="Meet the dedicated educators who make Greenwood exceptional." />
+      <section className="container py-12 sm:py-16">
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {faculty.map((t) => (
-            <Card key={t.id} className="text-center transition-shadow hover:shadow-lg">
-              <CardContent className="flex flex-col items-center gap-3 p-8">
-                <Avatar className="h-24 w-24">
-                  <AvatarImage src={t.photo || avatarUrl(t.fullName)} alt={t.fullName} />
-                  <AvatarFallback className="text-lg">{initials(t.fullName)}</AvatarFallback>
-                </Avatar>
-                <div>
-                  <h3 className="text-lg font-semibold">{t.fullName}</h3>
-                  <p className="text-sm text-primary">{t.subject || t.department || "Faculty"}</p>
-                  {t.qualification && <p className="mt-1 text-xs text-muted-foreground">{t.qualification}</p>}
+          {faculty.map((t, i) => (
+            <Reveal key={t.id} delay={(i % 3) * 0.08}>
+              <div className="glow lift group h-full rounded-2xl border border-border/60 bg-card/70 p-8 text-center shadow-soft backdrop-blur">
+                <div className="relative mx-auto w-fit">
+                  <div className="pointer-events-none absolute -inset-2 rounded-full bg-primary/15 opacity-0 blur-xl transition-opacity group-hover:opacity-100" />
+                  <Avatar className="relative h-24 w-24 ring-2 ring-border/60 transition-transform group-hover:scale-105">
+                    <AvatarImage src={t.photo || avatarUrl(t.fullName)} alt={t.fullName} />
+                    <AvatarFallback className="text-lg">{initials(t.fullName)}</AvatarFallback>
+                  </Avatar>
                 </div>
-              </CardContent>
-            </Card>
+                <h3 className="mt-4 text-lg font-semibold">{t.fullName}</h3>
+                <p className="text-sm text-primary">{t.subject || t.department || "Faculty"}</p>
+                {t.qualification && <p className="mt-1 text-xs text-muted-foreground">{t.qualification}</p>}
+              </div>
+            </Reveal>
           ))}
         </div>
       </section>

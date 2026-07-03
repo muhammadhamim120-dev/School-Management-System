@@ -35,9 +35,9 @@ export default function LoginPage() {
   };
 
   return (
-    <Card>
+    <Card className="rounded-2xl border-border/60 glass shadow-float">
       <CardHeader>
-        <CardTitle>Sign in</CardTitle>
+        <CardTitle className="text-xl">Sign in</CardTitle>
         <CardDescription>Enter your credentials to access the dashboard</CardDescription>
       </CardHeader>
       <CardContent>
@@ -53,10 +53,10 @@ export default function LoginPage() {
               Forgot password?
             </Link>
           </div>
-          <Button type="submit" className="w-full" disabled={isSubmitting}>
+          <Button type="submit" className="press w-full" disabled={isSubmitting}>
             {isSubmitting ? "Signing in..." : "Sign in"}
           </Button>
-          <p className="rounded-md bg-muted p-3 text-center text-xs text-muted-foreground">
+          <p className="rounded-xl bg-muted/70 p-3 text-center text-xs text-muted-foreground">
             Demo credentials: <strong>admin@greenwood.edu</strong> / <strong>admin123</strong>
           </p>
         </form>

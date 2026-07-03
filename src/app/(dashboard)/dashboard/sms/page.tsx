@@ -103,24 +103,25 @@ function MessagesTab({ onChange }: { onChange: () => void }) {
   const [title, setTitle] = React.useState("");
   const [body, setBody] = React.useState("");
   const [audience, setAudience] = React.useState<typeof AUDIENCES[number]>("STUDENTS");
+  const [category, setCategory] = React.useState<string>("GENERAL");
   const [templateId, setTemplateId] = React.useState("");
   const [customNumbers, setCustomNumbers] = React.useState("");
   const [saving, setSaving] = React.useState(false);
 
   React.useEffect(() => { smsTemplatesApi.list({ limit: 100 }).then((d) => setTemplates(d.items)).catch(() => {}); }, []);
 
-  const openForm = () => { setTitle(""); setBody(""); setAudience("STUDENTS"); setTemplateId(""); setCustomNumbers(""); setOpen(true); };
+  const openForm = () => { setTitle(""); setBody(""); setAudience("STUDENTS"); setCategory("GENERAL"); setTemplateId(""); setCustomNumbers(""); setOpen(true); };
   const applyTemplate = (id: string) => {
     setTemplateId(id);
     const tpl = templates.find((x) => x.id === id);
-    if (tpl) setBody(tpl.body);
+    if (tpl) { setBody(tpl.body); if (tpl.category) setCategory(tpl.category); }
   };
   const submit = async (send: boolean) => {
     if (!body.trim()) { toast({ variant: "destructive", title: "Message body required" }); return; }
     setSaving(true);
     try {
       const payload: SmsMessageInput = {
-        title: title || undefined, body, audience, templateId: templateId || undefined, send,
+        title: title || undefined, body, audience, category: category as SmsMessageInput["category"], templateId: templateId || undefined, send,
         recipients: audience === "CUSTOM"
           ? customNumbers.split(",").map((n) => n.trim()).filter(Boolean).map((phone) => ({ name: undefined, phone }))
           : [],

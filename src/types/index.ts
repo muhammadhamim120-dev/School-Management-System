@@ -10,9 +10,11 @@ import type {
   Driver, Vehicle, TransportRoute, RouteStop, StudentTransport,
   VehicleType, VehicleStatus, TransportAssignmentStatus,
   HostelBuilding, HostelRoom, HostelAllocation, RoomStatus, AllocationStatus,
-  SmsTemplate, SmsMessage, SmsRecipient, SmsStatus, SmsAudience,
+  SmsTemplate, SmsMessage, SmsRecipient, SmsStatus, SmsAudience, SmsCategory,
   AdmissionSession, Application, ApplicationStatus,
   RiskAssessment, RiskLevel,
+  PaymentTransaction, PaymentEvent,
+  RoutineSlot, Homework, ParentMessage, LeaveRequest, WeekDay, MessageSender, LeaveStatus,
 } from "@prisma/client";
 
 export type {
@@ -26,9 +28,11 @@ export type {
   Driver, Vehicle, TransportRoute, RouteStop, StudentTransport,
   VehicleType, VehicleStatus, TransportAssignmentStatus,
   HostelBuilding, HostelRoom, HostelAllocation, RoomStatus, AllocationStatus,
-  SmsTemplate, SmsMessage, SmsRecipient, SmsStatus, SmsAudience,
+  SmsTemplate, SmsMessage, SmsRecipient, SmsStatus, SmsAudience, SmsCategory,
   AdmissionSession, Application, ApplicationStatus,
   RiskAssessment, RiskLevel,
+  PaymentTransaction, PaymentEvent,
+  RoutineSlot, Homework, ParentMessage, LeaveRequest, WeekDay, MessageSender, LeaveStatus,
 };
 
 export type RiskAssessmentWithStudent = RiskAssessment & {

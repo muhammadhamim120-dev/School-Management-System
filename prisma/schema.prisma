@@ -134,6 +134,15 @@ enum PaymentGateway {
   SSLCOMMERZ
 }
 
+enum PaymentEvent {
+  INITIATE
+  CALLBACK
+  WEBHOOK
+  VERIFY
+  REFUND
+  MANUAL
+}
+
 enum ConcessionType {
   DISCOUNT
   SCHOLARSHIP
@@ -202,8 +211,21 @@ enum AllocationStatus {
 enum SmsStatus {
   DRAFT
   QUEUED
+  SENDING
   SENT
+  DELIVERED
   FAILED
+}
+
+enum SmsCategory {
+  GENERAL
+  ATTENDANCE
+  FEE_REMINDER
+  RESULT
+  HOLIDAY
+  EMERGENCY
+  ADMISSION
+  OTP
 }
 
 enum SmsAudience {
@@ -263,6 +285,8 @@ model Class {
   exams     Exam[]
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
+  routineSlots RoutineSlot[]
+  homeworks    Homework[]
 }
 
 model Section {
@@ -275,6 +299,8 @@ model Section {
   updatedAt DateTime  @updatedAt
 
   @@unique([classId, name])
+  routineSlots RoutineSlot[]
+  homeworks    Homework[]
 }
 
 model Subject {
@@ -288,6 +314,8 @@ model Subject {
   results     Result[]
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+  routineSlots RoutineSlot[]
+  homeworks    Homework[]
 }
 
 // ---------- People ----------
@@ -332,6 +360,8 @@ model Student {
   riskAssessments  RiskAssessment[]
   createdAt        DateTime     @default(now())
   updatedAt        DateTime     @updatedAt
+  parentMessages ParentMessage[]
+  leaveRequests  LeaveRequest[]
 }
 
 model Teacher {
@@ -355,6 +385,9 @@ model Teacher {
   bookLoans     BookLoan[]
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
+  routineSlots RoutineSlot[]
+  homeworks    Homework[]
+  parentMessages ParentMessage[]
 }
 
 model Parent {
@@ -583,11 +616,40 @@ model Payment {
   gatewayRef    String?       // transaction id from bKash/Nagad/etc.
   receivedAt    DateTime      @default(now())
   note          String?
+  // Refund support
+  refundedAmount Float        @default(0)
+  refundedAt    DateTime?
+  refundRef     String?
+  transactions  PaymentTransaction[]
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
 
   @@index([invoiceId])
   @@index([status])
+  @@index([gatewayRef])
+}
+
+// Immutable audit log of every gateway interaction (initiate, callback,
+// webhook, verify, refund). Provides transaction logs + timeline.
+model PaymentTransaction {
+  id         String         @id @default(cuid())
+  payment    Payment?       @relation(fields: [paymentId], references: [id], onDelete: SetNull)
+  paymentId  String?
+  invoiceId  String?
+  gateway    PaymentGateway?
+  gatewayRef String?
+  event      PaymentEvent
+  status     PaymentStatus  @default(PENDING)
+  amount     Float?
+  // Raw provider payload / message for debugging & audit (no secrets stored).
+  payload    String?
+  message    String?
+  createdAt  DateTime       @default(now())
+
+  @@index([paymentId])
+  @@index([invoiceId])
+  @@index([gatewayRef])
+  @@index([event])
 }
 
 model Concession {
@@ -823,16 +885,20 @@ model HostelAllocation {
 model SmsTemplate {
   id        String        @id @default(cuid())
   name      String        @unique
+  category  SmsCategory   @default(GENERAL)
   body      String
   messages  SmsMessage[]
   createdAt DateTime      @default(now())
   updatedAt DateTime      @updatedAt
+
+  @@index([category])
 }
 
 model SmsMessage {
   id          String         @id @default(cuid())
   title       String?
   body        String
+  category    SmsCategory    @default(GENERAL)
   audience    SmsAudience    @default(CUSTOM)
   status      SmsStatus      @default(DRAFT)
   template    SmsTemplate?   @relation(fields: [templateId], references: [id], onDelete: SetNull)
@@ -843,24 +909,31 @@ model SmsMessage {
   totalCount  Int            @default(0)
   sentCount   Int            @default(0)
   failedCount Int            @default(0)
+  deliveredCount Int         @default(0)
   createdAt   DateTime       @default(now())
   updatedAt   DateTime       @updatedAt
 
   @@index([status])
+  @@index([category])
 }
 
 model SmsRecipient {
-  id         String     @id @default(cuid())
-  message    SmsMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
-  messageId  String
-  name       String?
-  phone      String
-  status     SmsStatus  @default(QUEUED)
-  error      String?
-  createdAt  DateTime   @default(now())
-  updatedAt  DateTime   @updatedAt
+  id            String     @id @default(cuid())
+  message       SmsMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  messageId     String
+  name          String?
+  phone         String
+  status        SmsStatus  @default(QUEUED)
+  error         String?
+  attempts      Int        @default(0)
+  lastAttemptAt DateTime?
+  providerRef   String?    // provider message id, for delivery-report correlation
+  deliveredAt   DateTime?
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
 
   @@index([messageId])
+  @@index([status])
 }
 
 // ---------- Admissions models ----------
@@ -920,6 +993,102 @@ model RiskAssessment {
 
   @@index([studentId])
   @@index([level])
+}
+
+// ---------- Parent Portal: routine, homework, messaging, leave ----------
+enum WeekDay {
+  SUNDAY
+  MONDAY
+  TUESDAY
+  WEDNESDAY
+  THURSDAY
+  FRIDAY
+  SATURDAY
+}
+
+model RoutineSlot {
+  id         String   @id @default(cuid())
+  class      Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
+  classId    String
+  section    Section? @relation(fields: [sectionId], references: [id], onDelete: SetNull)
+  sectionId  String?
+  subject    Subject? @relation(fields: [subjectId], references: [id], onDelete: SetNull)
+  subjectId  String?
+  teacher    Teacher? @relation(fields: [teacherId], references: [id], onDelete: SetNull)
+  teacherId  String?
+  day        WeekDay
+  startTime  String   // "09:00"
+  endTime    String   // "09:45"
+  room       String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([classId])
+  @@index([sectionId])
+}
+
+model Homework {
+  id         String   @id @default(cuid())
+  class      Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
+  classId    String
+  section    Section? @relation(fields: [sectionId], references: [id], onDelete: SetNull)
+  sectionId  String?
+  subject    Subject? @relation(fields: [subjectId], references: [id], onDelete: SetNull)
+  subjectId  String?
+  teacher    Teacher? @relation(fields: [teacherId], references: [id], onDelete: SetNull)
+  teacherId  String?
+  title      String
+  details    String
+  assignedOn DateTime @default(now())
+  dueDate    DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([classId])
+  @@index([dueDate])
+}
+
+enum MessageSender {
+  PARENT
+  TEACHER
+  ADMIN
+}
+
+model ParentMessage {
+  id         String        @id @default(cuid())
+  student    Student       @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  studentId  String
+  teacher    Teacher?      @relation(fields: [teacherId], references: [id], onDelete: SetNull)
+  teacherId  String?
+  sender     MessageSender
+  body       String
+  readAt     DateTime?
+  createdAt  DateTime      @default(now())
+
+  @@index([studentId])
+  @@index([teacherId])
+}
+
+enum LeaveStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model LeaveRequest {
+  id         String      @id @default(cuid())
+  student    Student     @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  studentId  String
+  fromDate   DateTime
+  toDate     DateTime
+  reason     String
+  status     LeaveStatus @default(PENDING)
+  reviewNote String?
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+
+  @@index([studentId])
+  @@index([status])
 }
 
 model Setting {

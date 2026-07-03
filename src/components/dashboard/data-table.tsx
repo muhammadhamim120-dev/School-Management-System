@@ -140,11 +140,12 @@ export function DataTable<T>({
               </TableCell>
             </TableRow>
           ) : (
-            rows.map((row) => (
+            rows.map((row, i) => (
               <TableRow
                 key={rowKey(row)}
                 onClick={onRowClick ? () => onRowClick(row) : undefined}
-                className={cn(onRowClick && "cursor-pointer")}
+                className={cn("row-enter", onRowClick && "cursor-pointer")}
+                style={{ animationDelay: `${Math.min(i, 12) * 0.03}s` }}
               >
                 {columns.map((c) => (
                   <TableCell key={c.key} className={c.className}>

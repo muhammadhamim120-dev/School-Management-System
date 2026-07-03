@@ -35,6 +35,7 @@ This system has been extended into a Bangladesh-focused academic ERP with full *
 
 - **Localization & Academics:** app-wide Bangla/English i18n; Bangladesh **GPA/grading engine** (A+ → F, 5.00 scale, any-fail rule); formal **report card / transcript / marksheet**; academic structure (campuses, sessions, terms, board registrations for PEC/JSC/SSC/HSC).
 - **Finance:** fee categories & structures, invoices with line items, partial payments, concessions/scholarships/waivers, analytics; **payment-gateway service layer** for bKash / Nagad / Rocket / SSLCommerz (env-var driven, no hardcoded secrets).
+- **Payments:** online gateway payments (bKash, Nagad, Rocket, SSLCommerz) with a SOLID service layer, invoice & **partial payment** settlement (idempotent), **refunds** (full/partial), **webhooks** with HMAC-SHA256 signature verification, callback handling, manual **verify**, an immutable **transaction log**, per-student **payment timeline**, downloadable **receipts**, and a **Gateway Settings** page showing config status + webhook/callback URLs. All credentials via environment variables.
 - **Library:** books, categories, authors, publishers, ISBN, per-copy tracking, shelf/rack, issue/return/renew, lost & damaged handling, fine calculation & collection, student & teacher borrowing history, analytics.
 - **Transport:** drivers, vehicles, routes with stops, student assignments, fares; **GPS-ready tracking service seam** (env-var driven).
 - **Hostel:** buildings, rooms (capacity + monthly fee), capacity-aware allocations with auto room-status, vacate flow.

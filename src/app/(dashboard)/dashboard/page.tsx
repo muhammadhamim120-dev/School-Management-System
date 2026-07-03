@@ -108,12 +108,12 @@ export default function DashboardHome() {
           Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-[116px] rounded-xl" />)
         ) : (
           <>
-            <StatCard label={t("stat.students")} value={num(s.students)} icon={Users} hint="Enrolled" trend={{ value: "4.2%", direction: "up" }} />
-            <StatCard label={t("stat.teachers")} value={num(s.teachers)} icon={GraduationCap} hint="Active staff" />
-            <StatCard label={t("stat.parents")} value={num(s.parents)} icon={UserCog} hint="Guardians" />
-            <StatCard label={t("stat.classes")} value={num(s.classes)} icon={Library} hint="Grade levels" />
-            <StatCard label={t("stat.revenue")} value={money(s.revenue)} icon={DollarSign} hint="Collected" trend={{ value: "2.1%", direction: "up" }} />
-            <StatCard label={t("stat.attendance")} value={`${num(s.attendanceRate)}%`} icon={CalendarCheck} hint="This week" />
+            <StatCard label={t("stat.students")} count={s.students} format={num} icon={Users} hint="Enrolled" trend={{ value: "4.2%", direction: "up" }} />
+            <StatCard label={t("stat.teachers")} count={s.teachers} format={num} icon={GraduationCap} hint="Active staff" />
+            <StatCard label={t("stat.parents")} count={s.parents} format={num} icon={UserCog} hint="Guardians" />
+            <StatCard label={t("stat.classes")} count={s.classes} format={num} icon={Library} hint="Grade levels" />
+            <StatCard label={t("stat.revenue")} count={s.revenue} format={money} icon={DollarSign} hint="Collected" trend={{ value: "2.1%", direction: "up" }} />
+            <StatCard label={t("stat.attendance")} count={s.attendanceRate} format={(n) => `${num(n)}%`} icon={CalendarCheck} hint="This week" />
           </>
         )}
       </div>

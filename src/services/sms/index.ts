@@ -67,6 +67,18 @@ class RobiProvider implements SmsProvider {
   }
 }
 
+/** Banglalink enterprise Bulk SMS. */
+class BanglalinkProvider implements SmsProvider {
+  readonly id = "BANGLALINK";
+  requiredEnv() { return ["BANGLALINK_SMS_API_KEY", "BANGLALINK_SMS_SENDER_ID", "BANGLALINK_SMS_BASE_URL"]; }
+  isConfigured() { return readEnv(this.requiredEnv()).missing.length === 0; }
+  async send(messages: SmsSendInput[]): Promise<SmsSendResult[]> {
+    if (!this.isConfigured()) return notConfigured(this.id, messages);
+    // TODO: POST to BANGLALINK_SMS_BASE_URL with api_key + sender_id.
+    return messages.map((m) => ({ to: m.to, ok: false, error: "pending: Banglalink send not wired" }));
+  }
+}
+
 /** Generic HTTP provider — for any REST SMS gateway (incl. Banglalink). */
 class GenericHttpProvider implements SmsProvider {
   readonly id = "GENERIC_HTTP";
@@ -82,6 +94,7 @@ const registry: Record<string, SmsProvider> = {
   SSL_WIRELESS: new SslWirelessProvider(),
   GP: new GrameenphoneProvider(),
   ROBI: new RobiProvider(),
+  BANGLALINK: new BanglalinkProvider(),
   GENERIC_HTTP: new GenericHttpProvider(),
 };
 

@@ -17,6 +17,7 @@ export const navItems = [
   { label: "Board Registration", href: "/dashboard/board-registrations", icon: ClipboardList },
   { label: "Academic Setup", href: "/dashboard/academic", icon: Building2 },
   { label: "Finance", href: "/dashboard/finance", icon: Wallet },
+  { label: "Payments", href: "/dashboard/payments", icon: CreditCard },
   { label: "Library", href: "/dashboard/library", icon: BookMarked },
   { label: "Transport", href: "/dashboard/transport", icon: Bus },
   { label: "Hostel", href: "/dashboard/hostel", icon: BedDouble },
@@ -60,6 +61,7 @@ export const navGroups = [
     label: "Operations",
     items: [
       { label: "Finance", href: "/dashboard/finance", icon: Wallet },
+      { label: "Payments", href: "/dashboard/payments", icon: CreditCard },
       { label: "Library", href: "/dashboard/library", icon: BookMarked },
       { label: "Transport", href: "/dashboard/transport", icon: Bus },
       { label: "Hostel", href: "/dashboard/hostel", icon: BedDouble },

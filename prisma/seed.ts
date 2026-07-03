@@ -10,9 +10,10 @@ function daysFromNow(n: number) {
   return d;
 }
 function yearsAgo(n: number) {
-  const d = new Date();
-  d.setFullYear(d.getFullYear() - n);
-  return d;
+  // Stable midnight-UTC date so public-payment DOB verification is deterministic
+  // (matches what an <input type="date"> submits).
+  const now = new Date();
+  return new Date(Date.UTC(now.getUTCFullYear() - n, 5, 15)); // June 15, n years ago
 }
 const pick = <T>(arr: T[], i: number) => arr[i % arr.length];
 
@@ -461,13 +462,27 @@ async function main() {
   console.log(`✔ 2 hostel buildings, 3 rooms, ${hostelAlloc} allocations`);
 
   // --- SMS ---
-  const tplFee = await prisma.smsTemplate.create({ data: { name: "Fee Reminder", body: "Dear guardian, the monthly fee for your child is due. Please pay by the 10th." } });
-  await prisma.smsTemplate.create({ data: { name: "Holiday Notice", body: "The school will remain closed tomorrow due to a public holiday." } });
-  await prisma.smsTemplate.create({ data: { name: "Exam Schedule", body: "Half-yearly exams begin next Sunday. Please check the routine." } });
-  await prisma.smsMessage.create({ data: {
-    title: "Fee Reminder - June", body: tplFee.body, audience: "PARENTS", status: "DRAFT", templateId: tplFee.id, totalCount: 0,
+  const tplFee = await prisma.smsTemplate.create({ data: { name: "Fee Reminder", category: "FEE_REMINDER", body: "Dear guardian, the monthly fee for {name} is due. Please pay by the 10th." } });
+  await prisma.smsTemplate.create({ data: { name: "Holiday Notice", category: "HOLIDAY", body: "The school will remain closed on {date} due to a public holiday." } });
+  await prisma.smsTemplate.create({ data: { name: "Exam Schedule", category: "RESULT", body: "Half-yearly exams begin next Sunday. Please check the routine." } });
+  await prisma.smsTemplate.create({ data: { name: "Attendance Absent", category: "ATTENDANCE", body: "Dear guardian, {name} was marked absent on {date}. Please contact the school." } });
+  await prisma.smsTemplate.create({ data: { name: "Result Published", category: "RESULT", body: "Result for {name} is published. GPA: {gpa}. Congratulations!" } });
+  await prisma.smsTemplate.create({ data: { name: "Emergency Broadcast", category: "EMERGENCY", body: "URGENT: {message}. - Greenwood School" } });
+  await prisma.smsTemplate.create({ data: { name: "Admission Confirmation", category: "ADMISSION", body: "Dear {name}, your admission application ({ref}) has been received. We will contact you shortly." } });
+  await prisma.smsTemplate.create({ data: { name: "OTP Verification", category: "OTP", body: "Your Greenwood verification code is {code}. It expires in 5 minutes." } });
+
+  // A sent message with a delivery mix + a retryable failure (populates reports & retry queue).
+  const sentMsg = await prisma.smsMessage.create({ data: {
+    title: "Fee Reminder - June", body: tplFee.body, category: "FEE_REMINDER", audience: "PARENTS", status: "SENT",
+    templateId: tplFee.id, provider: "SSL_WIRELESS", sentAt: new Date(), totalCount: 3, sentCount: 2, deliveredCount: 1, failedCount: 1,
+    recipients: { create: [
+      { name: "Parent A", phone: "+8801711111111", status: "DELIVERED", attempts: 1, providerRef: "SSL-1001", deliveredAt: new Date() },
+      { name: "Parent B", phone: "+8801722222222", status: "SENT", attempts: 1, providerRef: "SSL-1002" },
+      { name: "Parent C", phone: "+8801733333333", status: "FAILED", attempts: 1, error: "Handset unreachable" },
+    ] },
   } });
-  console.log("✔ 3 sms templates, 1 draft message");
+  void sentMsg;
+  console.log("✔ 8 sms templates (all categories), 1 sent message with delivery + retry data");
 
   // --- Admissions ---
   const admSession = await prisma.admissionSession.create({ data: {
@@ -520,6 +535,57 @@ async function main() {
     riskCount++;
   }
   console.log(`✔ ${riskCount} risk assessments`);
+
+  // --- Payment gateway transactions (demo history + logs) ---
+  const payInvoices = await prisma.invoice.findMany({ take: 3, orderBy: { createdAt: "asc" } });
+  let gatewayPayCount = 0;
+  const gateways = ["BKASH", "NAGAD", "SSLCOMMERZ"] as const;
+  for (let i = 0; i < payInvoices.length; i++) {
+    const inv = payInvoices[i];
+    const gw = gateways[i % gateways.length];
+    const ref = `TRX-${gw}-${1000 + i}`;
+    const amount = Math.min(inv.total, 1000 + i * 500);
+    await prisma.paymentTransaction.create({ data: { invoiceId: inv.id, gateway: gw, event: "INITIATE", status: "PENDING", amount, gatewayRef: ref, message: "Checkout session created." } });
+    const payment = await prisma.payment.create({ data: { invoiceId: inv.id, amount, method: gw, status: "SUCCESS", gateway: gw, gatewayRef: ref } });
+    await prisma.paymentTransaction.create({ data: { paymentId: payment.id, invoiceId: inv.id, gateway: gw, event: "WEBHOOK", status: "SUCCESS", amount, gatewayRef: ref } });
+    // recompute invoice
+    const payments = await prisma.payment.findMany({ where: { invoiceId: inv.id, status: { in: ["SUCCESS", "REFUNDED"] } } });
+    const paidTotal = payments.reduce((s: number, p: { amount: number; refundedAmount: number }) => s + (p.amount - (p.refundedAmount ?? 0)), 0);
+    const status = paidTotal >= inv.total ? "PAID" : paidTotal > 0 ? "PARTIAL" : inv.status;
+    await prisma.invoice.update({ where: { id: inv.id }, data: { paidTotal, status } });
+    gatewayPayCount++;
+  }
+  console.log(`✔ ${gatewayPayCount} gateway payments + transaction logs`);
+
+  // --- Parent Portal: routine, homework, messages, leave ---
+  const ppClass = await prisma.class.findFirst();
+  const ppSection = ppClass ? await prisma.section.findFirst({ where: { classId: ppClass.id } }) : null;
+  const ppSubjects = await prisma.subject.findMany({ take: 4 });
+  const ppTeacher = await prisma.teacher.findFirst();
+  const ppStudent = await prisma.student.findFirst({ orderBy: { studentId: "asc" } });
+  if (ppClass && ppSubjects.length) {
+    const days = ["SUNDAY", "MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY"] as const;
+    const times = [["09:00", "09:45"], ["09:50", "10:35"], ["10:40", "11:25"], ["11:45", "12:30"]];
+    let slots = 0;
+    for (const day of days) {
+      for (let p = 0; p < Math.min(4, ppSubjects.length); p++) {
+        await prisma.routineSlot.create({ data: {
+          classId: ppClass.id, sectionId: ppSection?.id ?? null, subjectId: ppSubjects[p].id, teacherId: ppTeacher?.id ?? null,
+          day, startTime: times[p][0], endTime: times[p][1], room: `Room ${201 + p}`,
+        } });
+        slots++;
+      }
+    }
+    await prisma.homework.create({ data: { classId: ppClass.id, sectionId: ppSection?.id ?? null, subjectId: ppSubjects[0].id, teacherId: ppTeacher?.id ?? null, title: "Algebra worksheet", details: "Complete exercises 1–10 from chapter 3.", dueDate: daysFromNow(3) } });
+    await prisma.homework.create({ data: { classId: ppClass.id, sectionId: ppSection?.id ?? null, subjectId: ppSubjects[1]?.id ?? ppSubjects[0].id, teacherId: ppTeacher?.id ?? null, title: "Reading comprehension", details: "Read the passage and answer the questions.", dueDate: daysFromNow(5) } });
+    console.log(`✔ ${slots} routine slots, 2 homework items`);
+  }
+  if (ppStudent && ppTeacher) {
+    await prisma.parentMessage.create({ data: { studentId: ppStudent.id, teacherId: ppTeacher.id, sender: "PARENT", body: "Assalamu alaikum, how is my child doing in class?" } });
+    await prisma.parentMessage.create({ data: { studentId: ppStudent.id, teacherId: ppTeacher.id, sender: "TEACHER", body: "Walaikum assalam. Steady progress this term, keep encouraging reading at home." } });
+    await prisma.leaveRequest.create({ data: { studentId: ppStudent.id, fromDate: daysFromNow(2), toDate: daysFromNow(3), reason: "Family wedding out of town.", status: "PENDING" } });
+    console.log("✔ parent messages + 1 leave request");
+  }
 
   // --- Notices ---
   const notices = [

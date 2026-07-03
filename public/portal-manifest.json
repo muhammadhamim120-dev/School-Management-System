@@ -1,0 +1,12 @@
+{
+  "name": "Greenwood Parent Portal",
+  "short_name": "Greenwood",
+  "description": "Attendance, results, fees, homework and more for guardians.",
+  "start_url": "/portal",
+  "display": "standalone",
+  "background_color": "#0f766e",
+  "theme_color": "#0f766e",
+  "icons": [
+    { "src": "/portal-icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}
