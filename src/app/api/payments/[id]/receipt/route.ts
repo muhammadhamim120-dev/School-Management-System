@@ -1,16 +1,14 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { fail } from "@/lib/api";
-import { auth } from "@/lib/auth";
+import { withTenantContext } from "@/lib/api-helpers";
 
 const esc = (s: unknown) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c] as string));
-const money = (n: number) => `৳${(n ?? 0).toLocaleString("en-BD", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+const money = (n: number) => `\u09F3${(n ?? 0).toLocaleString("en-BD", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
-// Returns a self-contained, printable HTML receipt. The browser's "Save as PDF"
-// converts it — no server-side PDF engine needed (serverless-friendly).
-export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+// Returns a self-contained, printable HTML receipt.
+export const GET = withTenantContext(async (_req: NextRequest, { params }: { params: Promise<{ id: string }> }) => {
   try {
-    const session = await auth(); if (!session) return fail("Unauthorized", 401);
     const { id } = await params;
     const payment = await prisma.payment.findUnique({
       where: { id },
@@ -24,11 +22,11 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
     const rows: [string, string][] = [
       ["Receipt No.", payment.id.slice(-10).toUpperCase()],
       ["Date", new Date(payment.receivedAt).toLocaleString("en-BD")],
-      ["Invoice", inv?.invoiceNo ?? "—"],
-      ["Student", student?.fullName ?? "—"],
-      ["Class", student?.class?.name ?? "—"],
+      ["Invoice", inv?.invoiceNo ?? "\u2014"],
+      ["Student", student?.fullName ?? "\u2014"],
+      ["Class", student?.class?.name ?? "\u2014"],
       ["Method", payment.method],
-      ["Gateway Ref", payment.gatewayRef ?? "—"],
+      ["Gateway Ref", payment.gatewayRef ?? "\u2014"],
       ["Status", payment.status],
     ];
 
@@ -53,7 +51,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   </div>
   <table>${rows.map(([k, v]) => `<tr><td>${esc(k)}</td><td>${esc(v)}</td></tr>`).join("")}</table>
   <div class="total"><span class="lbl">Amount Paid</span><span class="amt">${money(payment.amount)}</span></div>
-  ${(payment.refundedAmount ?? 0) > 0 ? `<div class="refund">Refunded: ${money(payment.refundedAmount)} · Net: ${money(net)}</div>` : ""}
+  ${(payment.refundedAmount ?? 0) > 0 ? `<div class="refund">Refunded: ${money(payment.refundedAmount)} \u00B7 Net: ${money(net)}</div>` : ""}
   <div class="foot">This is a computer-generated receipt. Generated ${new Date().toLocaleString("en-BD")}.</div>
   <div class="noprint" style="text-align:center"><button class="btn" onclick="window.print()">Print / Save as PDF</button></div>
 </body></html>`;
@@ -62,4 +60,4 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   } catch {
     return fail("Failed to generate receipt", 500);
   }
-}
+});

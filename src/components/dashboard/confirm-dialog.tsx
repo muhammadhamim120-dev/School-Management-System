@@ -2,6 +2,7 @@
 import * as React from "react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { AlertTriangle } from "lucide-react";
 
 export function ConfirmDialog({
   open, onOpenChange, title = "Are you sure?", description, onConfirm, loading, confirmLabel,
@@ -18,12 +19,17 @@ export function ConfirmDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-sm">
         <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
-          {description && <DialogDescription>{description}</DialogDescription>}
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-destructive/10">
+            <AlertTriangle className="h-6 w-6 text-destructive" />
+          </div>
+          <DialogTitle className="text-center">{title}</DialogTitle>
+          {description && <DialogDescription className="text-center">{description}</DialogDescription>}
         </DialogHeader>
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>Cancel</Button>
-          <Button variant="destructive" onClick={onConfirm} disabled={loading}>
+        <DialogFooter className="sm:justify-center">
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={loading} className="h-9">
+            Cancel
+          </Button>
+          <Button variant="destructive" onClick={onConfirm} disabled={loading} className="h-9">
             {loading ? "Working..." : confirmLabel ?? "Delete"}
           </Button>
         </DialogFooter>

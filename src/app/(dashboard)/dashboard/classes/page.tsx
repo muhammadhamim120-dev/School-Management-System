@@ -61,7 +61,7 @@ export default function ClassesPage() {
   };
   const openSection = (classId: string) => {
     setSectionClassId(classId);
-    sectionForm.reset({ name: "", classId });
+    sectionForm.reset({ name: "", classId, shift: undefined });
     setSectionOpen(true);
   };
 
@@ -222,6 +222,17 @@ export default function ClassesPage() {
             </Field>
             <Field label={t("field.sectionName")} error={sectionForm.formState.errors.name?.message} required>
               <Input {...sectionForm.register("name")} placeholder="e.g. A" />
+            </Field>
+            <Field label={t("field.shift")} error={sectionForm.formState.errors.shift?.message}>
+              <Select value={sectionForm.watch("shift") ?? "none"} onValueChange={(v) => sectionForm.setValue("shift", v === "none" ? undefined : (v as SectionInput["shift"]))}>
+                <SelectTrigger><SelectValue placeholder={t("placeholder.selectShift")} /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">—</SelectItem>
+                  <SelectItem value="MORNING">{t("shift.MORNING")}</SelectItem>
+                  <SelectItem value="DAY">{t("shift.DAY")}</SelectItem>
+                  <SelectItem value="EVENING">{t("shift.EVENING")}</SelectItem>
+                </SelectContent>
+              </Select>
             </Field>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setSectionOpen(false)}>Cancel</Button>

@@ -26,16 +26,25 @@
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
     --success: 152 60% 40%;
+    --success-foreground: 0 0% 100%;
     --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 100%;
 
     --border: 240 12% 91%;
     --input: 240 12% 89%;
     --ring: 245 75% 59%;
-    --radius: 0.75rem;
+    --radius: 0.625rem;
 
     /* Glass surfaces (Apple/Vercel register) */
     --glass-bg: 0 0% 100% / 0.72;
     --glass-border: 240 12% 91% / 0.6;
+
+    /* Sidebar */
+    --sidebar: 0 0% 100%;
+    --sidebar-foreground: 240 10% 9%;
+    --sidebar-accent: 240 15% 95%;
+    --sidebar-accent-foreground: 240 10% 15%;
+    --sidebar-border: 240 12% 91%;
 
     /* Chart palette */
     --chart-1: 245 75% 59%;
@@ -49,6 +58,7 @@
     --shadow-sm: 0 1px 3px 0 hsl(240 10% 10% / 0.06), 0 1px 2px -1px hsl(240 10% 10% / 0.06);
     --shadow-md: 0 4px 12px -2px hsl(240 10% 10% / 0.08), 0 2px 6px -2px hsl(240 10% 10% / 0.05);
     --shadow-lg: 0 12px 32px -8px hsl(240 15% 12% / 0.12), 0 4px 12px -4px hsl(240 10% 10% / 0.06);
+    --shadow-xl: 0 20px 50px -12px hsl(240 15% 12% / 0.18), 0 8px 20px -6px hsl(240 10% 10% / 0.08);
   }
 
   .dark {
@@ -72,7 +82,9 @@
     --destructive: 0 72% 58%;
     --destructive-foreground: 0 0% 100%;
     --success: 152 55% 50%;
+    --success-foreground: 0 0% 100%;
     --warning: 38 92% 58%;
+    --warning-foreground: 0 0% 100%;
 
     --border: 240 6% 16%;
     --input: 240 6% 20%;
@@ -80,6 +92,12 @@
 
     --glass-bg: 240 9% 8% / 0.68;
     --glass-border: 240 6% 24% / 0.5;
+
+    --sidebar: 240 9% 7%;
+    --sidebar-foreground: 240 10% 96%;
+    --sidebar-accent: 240 6% 14%;
+    --sidebar-accent-foreground: 240 10% 94%;
+    --sidebar-border: 240 6% 16%;
 
     --chart-1: 245 80% 67%;
     --chart-2: 172 60% 52%;
@@ -91,6 +109,7 @@
     --shadow-sm: 0 1px 3px 0 hsl(0 0% 0% / 0.4), 0 1px 2px -1px hsl(0 0% 0% / 0.4);
     --shadow-md: 0 4px 12px -2px hsl(0 0% 0% / 0.5), 0 2px 6px -2px hsl(0 0% 0% / 0.4);
     --shadow-lg: 0 12px 32px -8px hsl(0 0% 0% / 0.6), 0 4px 12px -4px hsl(0 0% 0% / 0.4);
+    --shadow-xl: 0 20px 50px -12px hsl(0 0% 0% / 0.7), 0 8px 20px -6px hsl(0 0% 0% / 0.5);
   }
 }
 
@@ -107,17 +126,18 @@
   }
   /* Tabular figures for all data/numeric contexts */
   .tabular-nums { font-variant-numeric: tabular-nums; }
-  h1, h2, h3, h4 { letter-spacing: -0.02em; }
+  h1, h2, h3, h4 { letter-spacing: -0.025em; }
 }
 
 @layer utilities {
-  /* Layered elevation utilities backed by tokens */
+  /* ─── Elevation (5-tier) ─── */
   .shadow-xs { box-shadow: var(--shadow-xs); }
   .shadow-soft { box-shadow: var(--shadow-sm); }
   .shadow-elevated { box-shadow: var(--shadow-md); }
   .shadow-float { box-shadow: var(--shadow-lg); }
+  .shadow-dramatic { box-shadow: var(--shadow-xl); }
 
-  /* Motion — quiet, purposeful */
+  /* ─── Motion — quiet, purposeful ─── */
   .animate-fade-in { animation: fade-in 0.4s cubic-bezier(0.22, 1, 0.36, 1) both; }
   .animate-rise { animation: rise 0.5s cubic-bezier(0.22, 1, 0.36, 1) both; }
   .animate-scale-in { animation: scale-in 0.18s cubic-bezier(0.22, 1, 0.36, 1) both; }
@@ -135,7 +155,7 @@
     to { opacity: 1; transform: scale(1); }
   }
 
-  /* Staggered entrance for grids/lists */
+  /* ─── Staggered entrance for grids/lists ─── */
   .stagger > * { animation: rise 0.5s cubic-bezier(0.22, 1, 0.36, 1) both; }
   .stagger > *:nth-child(1) { animation-delay: 0.02s; }
   .stagger > *:nth-child(2) { animation-delay: 0.06s; }
@@ -144,7 +164,7 @@
   .stagger > *:nth-child(5) { animation-delay: 0.18s; }
   .stagger > *:nth-child(6) { animation-delay: 0.22s; }
 
-  /* Subtle grid texture for hero/empty surfaces */
+  /* ─── Subtle grid texture for hero/empty surfaces ─── */
   .bg-grid {
     background-image:
       linear-gradient(to right, hsl(var(--border) / 0.5) 1px, transparent 1px),
@@ -152,7 +172,7 @@
     background-size: 32px 32px;
   }
 
-  /* Glassmorphism — frosted surfaces for bars, popovers, overlays */
+  /* ─── Glassmorphism — frosted surfaces ─── */
   .glass {
     background: hsl(var(--glass-bg));
     backdrop-filter: saturate(180%) blur(20px);
@@ -165,7 +185,7 @@
     -webkit-backdrop-filter: saturate(160%) blur(12px);
   }
 
-  /* Micro-interaction: hover lift for cards & tiles */
+  /* ─── Micro-interactions ─── */
   .lift {
     transition: transform 0.22s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.22s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.22s ease;
   }
@@ -176,7 +196,7 @@
   .press { transition: transform 0.1s ease; }
   .press:active { transform: scale(0.97); }
 
-  /* Gradient text accent (Stripe/Linear headline register) */
+  /* ─── Gradient text accent ─── */
   .text-gradient {
     background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--chart-3)) 100%);
     -webkit-background-clip: text;
@@ -184,11 +204,12 @@
     color: transparent;
   }
 
-  /* Shimmer loading skeleton — richer than a flat pulse */
+  /* ─── Shimmer loading skeleton ─── */
   .shimmer {
     position: relative;
     overflow: hidden;
     background: hsl(var(--muted));
+    border-radius: var(--radius);
   }
   .shimmer::after {
     content: "";
@@ -200,13 +221,13 @@
   }
   @keyframes shimmer { 100% { transform: translateX(100%); } }
 
-  /* Ring-accent focus for interactive surfaces */
+  /* ─── Focus ring ─── */
   .focus-ring:focus-visible {
     outline: none;
     box-shadow: 0 0 0 2px hsl(var(--background)), 0 0 0 4px hsl(var(--ring) / 0.5);
   }
 
-  /* Aurora animated background blobs (Antigravity/Arc register) */
+  /* ─── Aurora animated background blobs ─── */
   .aurora-blob {
     position: absolute;
     border-radius: 9999px;
@@ -235,7 +256,7 @@
   @keyframes aurora-drift-2 { to { transform: translate(calc(var(--px,0px) - 6vw), calc(var(--py,0px) + 8vh)) scale(1.05); } }
   @keyframes aurora-drift-3 { to { transform: translate(calc(var(--px,0px) + 4vw), calc(var(--py,0px) - 6vh)) scale(1.12); } }
 
-  /* Ripple micro-interaction */
+  /* ─── Ripple micro-interaction ─── */
   .ripple-host { position: relative; overflow: hidden; }
   .ripple {
     position: absolute; border-radius: 9999px; transform: scale(0);
@@ -244,7 +265,7 @@
   }
   @keyframes ripple { to { transform: scale(2.4); opacity: 0; } }
 
-  /* Hover glow halo */
+  /* ─── Hover glow halo ─── */
   .glow { position: relative; }
   .glow::before {
     content: ""; position: absolute; inset: -1px; border-radius: inherit;
@@ -253,9 +274,50 @@
   }
   .glow:hover::before { opacity: 1; }
 
-  /* Staggered table row entrance */
+  /* ─── Table row entrance ─── */
   .row-enter { animation: row-enter 0.4s cubic-bezier(0.22, 1, 0.36, 1) both; }
   @keyframes row-enter { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+  /* ─── Surface tiers for layered UI ─── */
+  .surface-base { background: hsl(var(--background)); }
+  .surface-raised { background: hsl(var(--card)); border: 1px solid hsl(var(--border)); }
+  .surface-overlay { background: hsl(var(--popover)); border: 1px solid hsl(var(--border)); box-shadow: var(--shadow-lg); }
+
+  /* ─── Sidebar specific ─── */
+  .sidebar-item {
+    @apply relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-150;
+    color: hsl(var(--sidebar-foreground) / 0.7);
+  }
+  .sidebar-item:hover {
+    background: hsl(var(--sidebar-accent));
+    color: hsl(var(--sidebar-accent-foreground));
+  }
+  .sidebar-item.active {
+    background: hsl(var(--primary) / 0.08);
+    color: hsl(var(--primary));
+  }
+  .sidebar-item.active::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 6px;
+    bottom: 6px;
+    width: 3px;
+    border-radius: 0 3px 3px 0;
+    background: hsl(var(--primary));
+  }
+
+  /* ─── Notification badge ─── */
+  .notification-badge {
+    @apply absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] font-bold leading-none;
+    background: hsl(var(--destructive));
+    color: hsl(var(--destructive-foreground));
+  }
+
+  /* ─── Smooth sidebar transition ─── */
+  .sidebar-transition {
+    transition: width 0.25s cubic-bezier(0.22, 1, 0.36, 1), padding 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -263,10 +325,10 @@
 }
 
 /* Refined scrollbars */
-::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: hsl(var(--border)); border-radius: 6px; border: 2px solid transparent; background-clip: content-box; }
-::-webkit-scrollbar-thumb:hover { background: hsl(var(--muted-foreground) / 0.4); background-clip: content-box; }
+::-webkit-scrollbar-thumb { background: hsl(var(--border)); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: hsl(var(--muted-foreground) / 0.4); }
 
 /* Print styles for marksheets / report cards */
 @media print {

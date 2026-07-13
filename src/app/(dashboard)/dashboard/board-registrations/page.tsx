@@ -2,7 +2,7 @@
 import * as React from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Plus, Pencil, Trash2, Download } from "lucide-react";
+import { Plus, Pencil, Trash2, Download, FileSpreadsheet, Printer } from "lucide-react";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { DataTable, type Column } from "@/components/dashboard/data-table";
 import { TableFilter } from "@/components/dashboard/table-filter";
@@ -67,8 +67,8 @@ export default function BoardRegistrationsPage() {
     catch (e) { toast({ variant: "destructive", title: "Error", description: (e as Error).message }); }
   };
 
-  const exportCsv = () => {
-    const params = new URLSearchParams({ format: "csv" });
+  const exportFormat = (format: "csv" | "xls") => {
+    const params = new URLSearchParams({ format });
     if (list.filters.boardExam) params.set("boardExam", list.filters.boardExam);
     if (list.filters.status) params.set("status", list.filters.status);
     if (list.filters.examYear) params.set("examYear", list.filters.examYear);
@@ -108,12 +108,15 @@ export default function BoardRegistrationsPage() {
         title={t("board.title")}
         description={t("board.subtitle")}
         action={
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={exportCsv}><Download className="h-4 w-4" /> {t("board.export")}</Button>
-            <Button onClick={() => openForm()}><Plus className="h-4 w-4" /> {t("board.add")}</Button>
+          <div className="flex flex-wrap gap-2 print:hidden">
+            <Button variant="outline" size="sm" onClick={() => exportFormat("csv")}><Download className="h-4 w-4" /> {t("board.exportCsv")}</Button>
+            <Button variant="outline" size="sm" onClick={() => exportFormat("xls")}><FileSpreadsheet className="h-4 w-4" /> {t("board.exportExcel")}</Button>
+            <Button variant="outline" size="sm" onClick={() => window.print()}><Printer className="h-4 w-4" /> {t("board.exportPdf")}</Button>
+            <Button size="sm" onClick={() => openForm()}><Plus className="h-4 w-4" /> {t("board.add")}</Button>
           </div>
         }
       />
+      <div className="print:hidden">
       <DataTable
         columns={columns}
         rows={list.rows}
@@ -136,10 +139,13 @@ export default function BoardRegistrationsPage() {
               placeholder={t("board.allExams")} value={list.filters.boardExam}
               onChange={(v) => list.setFilter("boardExam", v)}
               options={[
-                { label: "PEC", value: "PEC" },
-                { label: "JSC", value: "JSC" },
-                { label: "SSC", value: "SSC" },
-                { label: "HSC", value: "HSC" },
+                { label: t("board.exam.PEC"), value: "PEC" },
+                { label: t("board.exam.JSC"), value: "JSC" },
+                { label: t("board.exam.SSC"), value: "SSC" },
+                { label: t("board.exam.HSC"), value: "HSC" },
+                { label: t("board.exam.EBTEDAYEE"), value: "EBTEDAYEE" },
+                { label: t("board.exam.DAKHIL"), value: "DAKHIL" },
+                { label: t("board.exam.ALIM"), value: "ALIM" },
               ]}
             />
             <TableFilter
@@ -160,6 +166,38 @@ export default function BoardRegistrationsPage() {
           </>
         }
       />
+      </div>
+
+      {/* Print-only clean table for PDF export via the browser print dialog */}
+      <div className="hidden print:block">
+        <h1 className="mb-3 text-lg font-bold">{t("board.title")}</h1>
+        <table className="w-full border-collapse text-xs">
+          <thead>
+            <tr className="border-b">
+              <th className="py-1 text-left">{t("board.exam")}</th>
+              <th className="py-1 text-left">Student</th>
+              <th className="py-1 text-left">{t("board.year")}</th>
+              <th className="py-1 text-left">{t("board.regNo")}</th>
+              <th className="py-1 text-left">{t("board.roll")}</th>
+              <th className="py-1 text-left">{t("board.boardName")}</th>
+              <th className="py-1 text-left">{t("board.status")}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {list.rows.map((r) => (
+              <tr key={r.id} className="border-b">
+                <td className="py-1">{r.boardExam}</td>
+                <td className="py-1">{r.student?.fullName ?? "—"}</td>
+                <td className="py-1 tabular-nums">{r.examYear}</td>
+                <td className="py-1 tabular-nums">{r.regNumber ?? "—"}</td>
+                <td className="py-1 tabular-nums">{r.rollNumber ?? "—"}</td>
+                <td className="py-1">{r.boardName ?? "—"}</td>
+                <td className="py-1">{r.status}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-md">
@@ -176,10 +214,13 @@ export default function BoardRegistrationsPage() {
                 <Select value={watch("boardExam")} onValueChange={(v) => setValue("boardExam", v as BoardRegistrationInput["boardExam"])}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="PEC">PEC</SelectItem>
-                    <SelectItem value="JSC">JSC</SelectItem>
-                    <SelectItem value="SSC">SSC</SelectItem>
-                    <SelectItem value="HSC">HSC</SelectItem>
+                    <SelectItem value="PEC">{t("board.exam.PEC")}</SelectItem>
+                    <SelectItem value="JSC">{t("board.exam.JSC")}</SelectItem>
+                    <SelectItem value="SSC">{t("board.exam.SSC")}</SelectItem>
+                    <SelectItem value="HSC">{t("board.exam.HSC")}</SelectItem>
+                    <SelectItem value="EBTEDAYEE">{t("board.exam.EBTEDAYEE")}</SelectItem>
+                    <SelectItem value="DAKHIL">{t("board.exam.DAKHIL")}</SelectItem>
+                    <SelectItem value="ALIM">{t("board.exam.ALIM")}</SelectItem>
                   </SelectContent>
                 </Select>
               </Field>

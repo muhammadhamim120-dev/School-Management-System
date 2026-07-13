@@ -1,12 +1,11 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { ok, handleError } from "@/lib/api";
-import { auth } from "@/lib/auth";
+import { withTenantContext } from "@/lib/api-helpers";
 
 // Aggregated read-only view for a single child. Reuses existing tables; no new schema.
-export async function GET(_req: NextRequest, { params }: { params: Promise<{ studentId: string }> }) {
+export const GET = withTenantContext(async (_req: NextRequest, { params }: { params: Promise<{ studentId: string }> }) => {
   try {
-    const session = await auth(); if (!session) return handleError({ code: "P2025" });
     const { studentId } = await params;
 
     const student = await prisma.student.findUnique({
@@ -52,4 +51,4 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ stu
       notices,
     });
   } catch (e) { return handleError(e); }
-}
+});

@@ -2,15 +2,24 @@ import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { ok, created, handleError, parsePagination } from "@/lib/api";
 import { teacherSchema } from "@/lib/validations";
-import { auth } from "@/lib/auth";
+import { requireAuth } from "@/lib/api-auth";
+import { deleteCached, cacheKeys } from "@/lib/cache";
+import { tenantWhere } from "@/lib/tenant";
+import { withTenantContext } from "@/lib/api-helpers";
+import { getRequiredTenantId } from "@/lib/tenant-context";
 
-export async function GET(req: NextRequest) {
+export const GET = withTenantContext(async (req: NextRequest) => {
   try {
+    // Require authentication
+    const auth = await requireAuth();
+    if (!auth.authenticated) return auth.error;
+
     const { page, limit, search, skip } = parsePagination(req.nextUrl.searchParams);
     const sp = req.nextUrl.searchParams;
 
     const status = sp.get("status")?.trim();
     const department = sp.get("department")?.trim();
+    const shift = sp.get("shift")?.trim();
 
     const sortableFields = ["createdAt", "fullName", "teacherId", "experience", "joiningDate"];
     const sortField = sp.get("sortField")?.trim() ?? "createdAt";
@@ -32,7 +41,8 @@ export async function GET(req: NextRequest) {
     }
     if (status) AND.push({ status });
     if (department) AND.push({ department });
-    const where = AND.length ? { AND } : {};
+    if (shift) AND.push({ shift: shift as "MORNING" | "DAY" | "EVENING" });
+    const where = tenantWhere(AND.length ? { AND } : {});
 
     const [items, total] = await Promise.all([
       prisma.teacher.findMany({ where, skip, take: limit, orderBy }),
@@ -42,16 +52,23 @@ export async function GET(req: NextRequest) {
   } catch (e) {
     return handleError(e);
   }
-}
+});
 
-export async function POST(req: NextRequest) {
+export const POST = withTenantContext(async (req: NextRequest) => {
   try {
-    const session = await auth();
-    if (!session) return handleError({ code: "P2025" });
+    // Require authentication
+    const auth = await requireAuth();
+    if (!auth.authenticated) return auth.error;
+
     const data = teacherSchema.parse(await req.json());
-    const teacher = await prisma.teacher.create({ data });
+    const schoolId = getRequiredTenantId();
+    const teacher = await prisma.teacher.create({ data: { ...data, schoolId } });
+
+    // Invalidate dashboard cache when teachers change
+    deleteCached(cacheKeys.dashboard());
+
     return created(teacher);
   } catch (e) {
     return handleError(e);
   }
-}
+});

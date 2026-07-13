@@ -1,8 +1,10 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { ok, handleError, parsePagination } from "@/lib/api";
+import { tenantWhere } from "@/lib/tenant";
+import { withTenantContext } from "@/lib/api-helpers";
 
-export async function GET(req: NextRequest) {
+export const GET = withTenantContext(async (req: NextRequest) => {
   try {
     const { page, limit, search, skip } = parsePagination(req.nextUrl.searchParams);
     const sp = req.nextUrl.searchParams;
@@ -14,11 +16,11 @@ export async function GET(req: NextRequest) {
     if (gateway) AND.push({ gateway });
     if (status) AND.push({ status });
     if (search) AND.push({ gatewayRef: { contains: search, mode: "insensitive" as const } });
-    const where = AND.length ? { AND } : {};
+    const where = tenantWhere(AND.length ? { AND } : {});
     const [items, total] = await Promise.all([
       prisma.paymentTransaction.findMany({ where, skip, take: limit, orderBy: { createdAt: "desc" } }),
       prisma.paymentTransaction.count({ where }),
     ]);
     return ok({ items, total, page, limit, totalPages: Math.ceil(total / limit) });
   } catch (e) { return handleError(e); }
-}
+});

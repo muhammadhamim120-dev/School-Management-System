@@ -12,9 +12,10 @@ export default async function DashboardLayout({ children }: { children: React.Re
   } catch {
     notifications = [];
   }
+  const role = (session?.user as { role?: string })?.role;
   return (
     <AuthSessionProvider>
-      <DashboardShell user={session?.user} notifications={notifications}>
+      <DashboardShell role={role} user={session?.user} notifications={notifications}>
         {children}
       </DashboardShell>
     </AuthSessionProvider>

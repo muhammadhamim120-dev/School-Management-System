@@ -1,9 +1,10 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { ok, handleError } from "@/lib/api";
+import { withTenantContext } from "@/lib/api-helpers";
 
 // Transparent merit list: applicants ranked by score (desc), with seat cutoff.
-export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export const GET = withTenantContext(async (_req: NextRequest, { params }: { params: Promise<{ id: string }> }) => {
   try {
     const { id } = await params;
     const session = await prisma.admissionSession.findUnique({ where: { id } });
@@ -15,4 +16,4 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
     }));
     return ok({ session, seats: session.seats, list: ranked });
   } catch (e) { return handleError(e); }
-}
+});

@@ -2,21 +2,22 @@ import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { ok, created, handleError, parsePagination } from "@/lib/api";
 import { publisherSchema } from "@/lib/validations";
-import { auth } from "@/lib/auth";
+import { tenantWhere } from "@/lib/tenant";
+import { withTenantContext } from "@/lib/api-helpers";
+import { getRequiredTenantId } from "@/lib/tenant-context";
 
-export async function GET(req: NextRequest) {
+export const GET = withTenantContext(async (req: NextRequest) => {
   try {
     const { search } = parsePagination(req.nextUrl.searchParams);
-    const where = search ? { name: { contains: search, mode: "insensitive" as const } } : {};
+    const where = tenantWhere(search ? { name: { contains: search, mode: "insensitive" as const } } : {});
     const items = await prisma.publisher.findMany({ where, orderBy: { name: "asc" } });
     return ok({ items, total: items.length, page: 1, limit: items.length, totalPages: 1 });
   } catch (e) { return handleError(e); }
-}
+});
 
-export async function POST(req: NextRequest) {
+export const POST = withTenantContext(async (req: NextRequest) => {
   try {
-    const session = await auth(); if (!session) return handleError({ code: "P2025" });
     const data = publisherSchema.parse(await req.json());
-    return created(await prisma.publisher.create({ data }));
+    return created(await prisma.publisher.create({ data: { ...data, schoolId: getRequiredTenantId() } }));
   } catch (e) { return handleError(e); }
-}
+});

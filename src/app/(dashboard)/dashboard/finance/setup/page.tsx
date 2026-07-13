@@ -61,7 +61,7 @@ export default function FeeSetupPage() {
   };
   const openStruct = (s?: FeeStructureWithCategory) => {
     setEditingStruct(s ?? null);
-    structForm.reset({ categoryId: s?.categoryId ?? "", amount: s?.amount ?? 0, label: s?.label ?? "", isActive: s?.isActive ?? true });
+    structForm.reset({ categoryId: s?.categoryId ?? "", amount: s?.amount ?? 0, label: s?.label ?? "", shift: (s?.shift as FeeStructureInput["shift"]) ?? undefined, isActive: s?.isActive ?? true });
     setStructOpen(true);
   };
 
@@ -218,7 +218,18 @@ export default function FeeSetupPage() {
               </Select>
             </Field>
             <Field label={t("fin.amount")} error={structForm.formState.errors.amount?.message} required><Input type="number" min={0} {...structForm.register("amount")} /></Field>
-            <Field label={t("fin.label")} error={structForm.formState.errors.label?.message}><Input {...structForm.register("label")} placeholder="e.g. Grade 5 — 2025" /></Field>
+            <Field label={t("field.shift")} error={structForm.formState.errors.shift?.message}>
+              <Select value={structForm.watch("shift") ?? "none"} onValueChange={(v) => structForm.setValue("shift", v === "none" ? undefined : (v as FeeStructureInput["shift"]))}>
+                <SelectTrigger><SelectValue placeholder={t("placeholder.selectShift")} /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">—</SelectItem>
+                  <SelectItem value="MORNING">{t("shift.MORNING")}</SelectItem>
+                  <SelectItem value="DAY">{t("shift.DAY")}</SelectItem>
+                  <SelectItem value="EVENING">{t("shift.EVENING")}</SelectItem>
+                </SelectContent>
+              </Select>
+            </Field>
+            <Field label={t("fin.label")} error={structForm.formState.errors.label?.message}><Input {...structForm.register("label")} placeholder="e.g. Grade 5 — 2025 — Morning" /></Field>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setStructOpen(false)}>{t("common.cancel")}</Button>
               <Button type="submit" disabled={structForm.formState.isSubmitting}>{structForm.formState.isSubmitting ? "Saving..." : t("common.save")}</Button>

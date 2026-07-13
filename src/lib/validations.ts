@@ -5,7 +5,7 @@ const statusEnum = z.enum(["ACTIVE", "INACTIVE", "SUSPENDED"]);
 const mediumEnum = z.enum(["BANGLA", "ENGLISH", "MADRASA"]);
 const madrasaLevelEnum = z.enum(["EBTEDAYEE", "DAKHIL", "ALIM"]);
 const shiftEnum = z.enum(["MORNING", "DAY", "EVENING"]);
-const boardExamEnum = z.enum(["PEC", "JSC", "SSC", "HSC"]);
+const boardExamEnum = z.enum(["PEC", "JSC", "SSC", "HSC", "EBTEDAYEE", "DAKHIL", "ALIM"]);
 const boardRegStatusEnum = z.enum(["PENDING", "REGISTERED", "APPROVED", "REJECTED"]);
 
 const optionalString = z
@@ -57,6 +57,7 @@ export const teacherSchema = z.object({
   salary: z.coerce.number().min(0).optional(),
   status: statusEnum.default("ACTIVE"),
   campusId: optionalString,
+  shift: shiftEnum.optional(),
 });
 export type TeacherInput = z.infer<typeof teacherSchema>;
 
@@ -146,6 +147,7 @@ export const feeStructureSchema = z.object({
   amount: z.coerce.number().min(0, "Amount must be positive"),
   classId: optionalString,
   sessionId: optionalString,
+  shift: shiftEnum.optional(),
   label: optionalString,
   isActive: z.coerce.boolean().optional().default(true),
 });
@@ -382,12 +384,16 @@ export const applicationSchema = z.object({
   score: z.coerce.number().min(0).max(100).optional().default(0),
   status: applicationStatusEnum.optional().default("SUBMITTED"),
   note: optionalString,
+  photoUrl: optionalString,
+  birthCertUrl: optionalString,
+  transcriptUrl: optionalString,
 });
 export type ApplicationInput = z.infer<typeof applicationSchema>;
 
 export const sectionSchema = z.object({
   name: z.string().min(1, "Section name is required"),
   classId: z.string().min(1, "Class is required"),
+  shift: shiftEnum.optional(),
 });
 export type SectionInput = z.infer<typeof sectionSchema>;
 
@@ -460,9 +466,137 @@ export type EventInput = z.infer<typeof eventSchema>;
 export const loginSchema = z.object({
   email: z.string().email("Invalid email"),
   password: z.string().min(6, "Password must be at least 6 characters"),
+  schoolSlug: z.string().optional(),
 });
 export const forgotSchema = z.object({ email: z.string().email("Invalid email") });
 export const resetSchema = z.object({
   token: z.string().min(1),
   password: z.string().min(6, "Password must be at least 6 characters"),
 });
+
+// ---------- Coaching ----------
+export const coachingBatchSchema = z.object({
+  name: z.string().min(1, "Batch name is required"),
+  subjectId: optionalString,
+  teacherId: optionalString,
+  capacity: z.coerce.number().int().min(1).default(30),
+  monthlyFee: z.coerce.number().min(0).default(0),
+  room: optionalString,
+  schedule: optionalString,
+  status: z.string().default("ACTIVE"),
+  startDate: z.coerce.date().optional(),
+  endDate: z.coerce.date().optional(),
+});
+export type CoachingBatchInput = z.infer<typeof coachingBatchSchema>;
+
+export const batchEnrollmentSchema = z.object({
+  studentIds: z.array(z.string().min(1)).min(1, "Select at least one student"),
+});
+export type BatchEnrollmentInput = z.infer<typeof batchEnrollmentSchema>;
+
+export const batchAttendanceSchema = z.object({
+  date: z.coerce.date(),
+  records: z.array(
+    z.object({
+      studentId: z.string().min(1),
+      status: z.enum(["PRESENT", "ABSENT", "LATE", "EXCUSED"]).default("PRESENT"),
+    })
+  ),
+});
+export type BatchAttendanceInput = z.infer<typeof batchAttendanceSchema>;
+
+// ---------- Homework ----------
+export const homeworkSchema = z.object({
+  classId: z.string().min(1, "Class is required"),
+  sectionId: optionalString,
+  subjectId: optionalString,
+  teacherId: optionalString,
+  title: z.string().min(1, "Homework title is required"),
+  details: z.string().min(1, "Details are required"),
+  attachmentUrl: optionalString,
+  dueDate: z.coerce.date({ message: "Valid due date required" }),
+  // Transient flag: if true, the API sends an SMS to the parents of the class.
+  notifyParents: z.coerce.boolean().optional().default(false),
+});
+export type HomeworkInput = z.infer<typeof homeworkSchema>;
+
+export const homeworkSubmissionSchema = z.object({
+  studentId: z.string().min(1, "Student is required"),
+  content: optionalString,
+  fileUrl: optionalString,
+  fileName: optionalString,
+});
+export type HomeworkSubmissionInput = z.infer<typeof homeworkSubmissionSchema>;
+
+export const homeworkGradeSchema = z.object({
+  marks: z.coerce.number().min(0, "Marks must be positive"),
+  totalMarks: z.coerce.number().min(1).default(100),
+  feedback: optionalString,
+});
+export type HomeworkGradeInput = z.infer<typeof homeworkGradeSchema>;
+
+// ---------- Online Examination ----------
+const questionTypeEnum = z.enum(["MCQ", "WRITTEN"]);
+const onlineExamStatusEnum = z.enum(["DRAFT", "SCHEDULED", "LIVE", "COMPLETED"]);
+
+export const questionSchema = z.object({
+  subjectId: optionalString,
+  teacherId: optionalString,
+  classId: optionalString,
+  type: questionTypeEnum.default("MCQ"),
+  text: z.string().min(1, "Question text is required"),
+  options: z.array(z.string().min(1)).optional().default([]),
+  correctOption: z.coerce.number().int().min(0).optional(),
+  modelAnswer: optionalString,
+  marks: z.coerce.number().min(0).default(1),
+  explanation: optionalString,
+  tags: optionalString,
+});
+export type QuestionInput = z.infer<typeof questionSchema>;
+
+export const onlineExamSchema = z.object({
+  title: z.string().min(1, "Exam title is required"),
+  classId: optionalString,
+  sectionId: optionalString,
+  subjectId: optionalString,
+  teacherId: optionalString,
+  description: optionalString,
+  startTime: z.coerce.date({ message: "Valid start time required" }),
+  endTime: z.coerce.date({ message: "Valid end time required" }),
+  durationMinutes: z.coerce.number().int().min(1).default(60),
+  totalMarks: z.coerce.number().min(0).default(100),
+  passMark: z.coerce.number().min(0).optional(),
+  negativeMark: z.coerce.number().min(0).default(0),
+  shuffleQuestions: z.coerce.boolean().optional().default(false),
+  status: onlineExamStatusEnum.optional().default("DRAFT"),
+});
+export type OnlineExamInput = z.infer<typeof onlineExamSchema>;
+
+// Attach a set of bank questions to an exam (with per-question marks + order).
+export const attachExamQuestionsSchema = z.object({
+  items: z
+    .array(
+      z.object({
+        questionId: z.string().min(1),
+        marks: z.coerce.number().min(0).default(1),
+      })
+    )
+    .min(1, "Select at least one question"),
+});
+export type AttachExamQuestionsInput = z.infer<typeof attachExamQuestionsSchema>;
+
+// Save a single answer during an attempt (autosave).
+export const examAnswerInputSchema = z.object({
+  questionLinkId: z.string().min(1),
+  selectedOption: z.coerce.number().int().min(0).optional(),
+  writtenAnswer: optionalString,
+  attachmentUrl: optionalString,
+});
+export type ExamAnswerInput = z.infer<typeof examAnswerInputSchema>;
+
+// Grade a single written answer (teacher review).
+export const gradeAnswerSchema = z.object({
+  answerId: z.string().min(1),
+  awardedMarks: z.coerce.number().min(0),
+});
+export type GradeAnswerInput = z.infer<typeof gradeAnswerSchema>;

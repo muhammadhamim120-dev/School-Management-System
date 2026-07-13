@@ -1,6 +1,7 @@
 "use client";
 import * as React from "react";
-import { Save, CalendarCheck } from "lucide-react";
+import { Save, CalendarCheck, QrCode, ScanLine, BarChart3, Users } from "lucide-react";
+import Link from "next/link";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Field } from "@/components/form-field";
+import { ShiftFilter, type ShiftFilterValue } from "@/components/dashboard/shift-filter";
 import { studentsApi, classesApi } from "@/services/resources";
 import { request } from "@/services/api-client";
 import { useToast } from "@/hooks/use-toast";
@@ -30,6 +32,7 @@ export default function AttendancePage() {
   const { toast } = useToast();
   const [date, setDate] = React.useState(new Date().toISOString().slice(0, 10));
   const [classId, setClassId] = React.useState<string>("");
+  const [shiftFilter, setShiftFilter] = React.useState<ShiftFilterValue>("ALL");
   const [classes, setClasses] = React.useState<Class[]>([]);
   const [students, setStudents] = React.useState<StudentWithRelations[]>([]);
   const [marks, setMarks] = React.useState<Record<string, AttStatus>>({});
@@ -44,7 +47,11 @@ export default function AttendancePage() {
     setLoading(true);
     studentsApi.list({ limit: 100 })
       .then((d: Paginated<StudentWithRelations>) => {
-        const filtered = classId ? d.items.filter((s) => s.classId === classId) : d.items;
+        const filtered = d.items.filter((s) => {
+          if (classId && s.classId !== classId) return false;
+          if (shiftFilter !== "ALL" && s.shift !== shiftFilter) return false;
+          return true;
+        });
         setStudents(filtered);
         const init: Record<string, AttStatus> = {};
         filtered.forEach((s) => { init[s.id] = "PRESENT"; });
@@ -52,7 +59,7 @@ export default function AttendancePage() {
       })
       .catch(() => setStudents([]))
       .finally(() => setLoading(false));
-  }, [classId]);
+  }, [classId, shiftFilter]);
 
   const setStatus = (id: string, s: AttStatus) => setMarks((m) => ({ ...m, [id]: s }));
 
@@ -74,9 +81,23 @@ export default function AttendancePage() {
         title={t("page.attendance.title")}
         description={t("page.attendance.desc")}
         action={
-          <Button onClick={save} disabled={saving || students.length === 0}>
-            <Save className="h-4 w-4" /> {saving ? "Saving..." : "Save Attendance"}
-          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button variant="outline" size="sm" asChild>
+              <Link href="/dashboard/attendance/scan"><QrCode className="h-4 w-4" /> {t("att.scan")}</Link>
+            </Button>
+            <Button variant="outline" size="sm" asChild>
+              <Link href="/dashboard/attendance/kiosk"><ScanLine className="h-4 w-4" /> {t("att.kiosk")}</Link>
+            </Button>
+            <Button variant="outline" size="sm" asChild>
+              <Link href="/dashboard/attendance/analytics"><BarChart3 className="h-4 w-4" /> {t("att.analytics")}</Link>
+            </Button>
+            <Button variant="outline" size="sm" asChild>
+              <Link href="/dashboard/attendance/teachers"><Users className="h-4 w-4" /> {t("att.teachers")}</Link>
+            </Button>
+            <Button onClick={save} disabled={saving || students.length === 0}>
+              <Save className="h-4 w-4" /> {saving ? t("common.saving") : t("common.save")}
+            </Button>
+          </div>
         }
       />
       <div className="mb-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -92,7 +113,10 @@ export default function AttendancePage() {
             </SelectContent>
           </Select>
         </Field>
-        <div className="sm:col-span-2 flex flex-wrap items-end gap-2">
+        <Field label={t("field.shift")}>
+          <ShiftFilter value={shiftFilter} onChange={setShiftFilter} />
+        </Field>
+        <div className="flex flex-wrap items-end gap-2">
           {summary.map((s) => (
             <span key={s.status} className={cn("rounded-md px-3 py-1.5 text-xs font-medium", statusStyle[s.status])}>
               {s.status}: {s.count}

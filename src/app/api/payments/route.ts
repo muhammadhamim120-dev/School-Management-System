@@ -2,10 +2,12 @@ import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { ok, created, handleError, parsePagination } from "@/lib/api";
 import { paymentSchema } from "@/lib/validations";
-import { auth } from "@/lib/auth";
 import { deriveInvoiceStatus } from "@/lib/finance";
+import { tenantWhere } from "@/lib/tenant";
+import { withTenantContext } from "@/lib/api-helpers";
+import { getRequiredTenantId } from "@/lib/tenant-context";
 
-export async function GET(req: NextRequest) {
+export const GET = withTenantContext(async (req: NextRequest) => {
   try {
     const { page, limit, skip } = parsePagination(req.nextUrl.searchParams);
     const sp = req.nextUrl.searchParams;
@@ -14,7 +16,7 @@ export async function GET(req: NextRequest) {
     const AND: Record<string, unknown>[] = [];
     if (invoiceId) AND.push({ invoiceId });
     if (status) AND.push({ status });
-    const where = AND.length ? { AND } : {};
+    const where = tenantWhere(AND.length ? { AND } : {});
     const [items, total] = await Promise.all([
       prisma.payment.findMany({
         where, skip, take: limit, orderBy: { receivedAt: "desc" },
@@ -24,15 +26,15 @@ export async function GET(req: NextRequest) {
     ]);
     return ok({ items, total, page, limit, totalPages: Math.ceil(total / limit) });
   } catch (e) { return handleError(e); }
-}
+});
 
-export async function POST(req: NextRequest) {
+export const POST = withTenantContext(async (req: NextRequest) => {
   try {
-    const session = await auth(); if (!session) return handleError({ code: "P2025" });
     const data = paymentSchema.parse(await req.json());
+    const schoolId = getRequiredTenantId();
 
     // Record payment and recompute the parent invoice atomically.
-    const result = await prisma.$transaction(async (tx: typeof prisma) => {
+    const result = await prisma.$transaction(async (tx) => {
       const payment = await tx.payment.create({ data: {
         invoiceId: data.invoiceId,
         amount: data.amount,
@@ -41,6 +43,7 @@ export async function POST(req: NextRequest) {
         gateway: data.gateway ?? null,
         gatewayRef: data.gatewayRef ?? null,
         note: data.note ?? null,
+        schoolId,
       }});
 
       const invoice = await tx.invoice.findUnique({ where: { id: data.invoiceId }, include: { payments: true } });
@@ -56,4 +59,4 @@ export async function POST(req: NextRequest) {
     });
     return created(result);
   } catch (e) { return handleError(e); }
-}
+});

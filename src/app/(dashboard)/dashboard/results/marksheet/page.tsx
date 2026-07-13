@@ -38,10 +38,30 @@ export default function MarksheetPage() {
   const [rows, setRows] = React.useState<ResultRow[]>([]);
   const [loading, setLoading] = React.useState(false);
   const [view, setView] = React.useState<"marksheet" | "transcript">("transcript");
+  const [gradeView, setGradeViewState] = React.useState<"gpa" | "percentage">("gpa");
 
   React.useEffect(() => {
     examsApi.list({ limit: 100 }).then((d) => setExams(d.items)).catch(() => {});
     studentsApi.list({ limit: 100 }).then((d) => setStudents(d.items)).catch(() => {});
+  }, []);
+
+  // Restore saved grade-view preference (consistent with the locale toggle).
+  React.useEffect(() => {
+    try {
+      const saved = window.localStorage.getItem("sms.gradeView");
+      if (saved === "gpa" || saved === "percentage") setGradeViewState(saved);
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
+  const setGradeView = React.useCallback((g: "gpa" | "percentage") => {
+    setGradeViewState(g);
+    try {
+      window.localStorage.setItem("sms.gradeView", g);
+    } catch {
+      /* ignore */
+    }
   }, []);
 
   React.useEffect(() => {
@@ -63,6 +83,10 @@ export default function MarksheetPage() {
     percentage: (r.marks / (r.totalMarks || 100)) * 100,
   }));
   const summary = computeGpa(subjectResults);
+  // Average percentage across subjects — the headline metric in "percentage" view.
+  const avgPct = subjectResults.length
+    ? Math.round(subjectResults.reduce((s, r) => s + r.percentage, 0) / subjectResults.length)
+    : 0;
 
   return (
     <div>
@@ -102,6 +126,30 @@ export default function MarksheetPage() {
             <TabsTrigger value="marksheet">{t("transcript.viewMarksheet")}</TabsTrigger>
           </TabsList>
         </Tabs>
+
+        {view === "marksheet" && (
+          <div className="mt-3 flex items-center gap-2">
+            <span className="text-xs font-medium text-muted-foreground">{t("marksheet.viewMode")}:</span>
+            <div className="inline-flex rounded-md border border-border p-0.5">
+              <button
+                type="button"
+                onClick={() => setGradeView("gpa")}
+                aria-pressed={gradeView === "gpa"}
+                className={`rounded px-3 py-1 text-xs font-medium transition-colors ${gradeView === "gpa" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-accent hover:text-foreground"}`}
+              >
+                {t("marksheet.viewGpa")}
+              </button>
+              <button
+                type="button"
+                onClick={() => setGradeView("percentage")}
+                aria-pressed={gradeView === "percentage"}
+                className={`rounded px-3 py-1 text-xs font-medium transition-colors ${gradeView === "percentage" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-accent hover:text-foreground"}`}
+              >
+                {t("marksheet.viewPercentage")}
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {loading ? (
@@ -158,9 +206,13 @@ export default function MarksheetPage() {
                   <TableHead>{t("marksheet.subject")}</TableHead>
                   <TableHead className="text-right">{t("marksheet.marks")}</TableHead>
                   <TableHead className="text-right">{t("marksheet.total")}</TableHead>
-                  <TableHead className="text-right">{t("marksheet.percentage")}</TableHead>
+                  {gradeView === "percentage" && (
+                    <TableHead className="text-right">{t("marksheet.percentage")}</TableHead>
+                  )}
                   <TableHead className="text-center">{t("marksheet.grade")}</TableHead>
-                  <TableHead className="text-right">{t("marksheet.point")}</TableHead>
+                  {gradeView === "gpa" && (
+                    <TableHead className="text-right">{t("marksheet.point")}</TableHead>
+                  )}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -171,9 +223,13 @@ export default function MarksheetPage() {
                       <TableCell className="font-medium">{r.subject?.name ?? "—"}</TableCell>
                       <TableCell className="text-right tabular-nums">{num(r.marks)}</TableCell>
                       <TableCell className="text-right tabular-nums">{num(r.totalMarks)}</TableCell>
-                      <TableCell className="text-right tabular-nums">{num(pct)}%</TableCell>
+                      {gradeView === "percentage" && (
+                        <TableCell className="text-right tabular-nums">{num(pct)}%</TableCell>
+                      )}
                       <TableCell className="text-center"><Badge variant={gradeVariant(r.grade)}>{r.grade}</Badge></TableCell>
-                      <TableCell className="text-right tabular-nums">{num(pointForGrade(r.grade))}</TableCell>
+                      {gradeView === "gpa" && (
+                        <TableCell className="text-right tabular-nums">{num(pointForGrade(r.grade))}</TableCell>
+                      )}
                     </TableRow>
                   );
                 })}
@@ -183,10 +239,17 @@ export default function MarksheetPage() {
             {/* Summary */}
             <div className="mt-6 flex items-center justify-between rounded-lg border border-border bg-muted/40 px-4 py-3">
               <div className="flex items-center gap-6 text-sm">
-                <div>
-                  <span className="text-muted-foreground">{t("marksheet.gpa")}: </span>
-                  <span className="text-lg font-bold tabular-nums">{locale === "bn" ? num(Number(formatGpa(summary.gpa))) : formatGpa(summary.gpa)}</span>
-                </div>
+                {gradeView === "gpa" ? (
+                  <div>
+                    <span className="text-muted-foreground">{t("marksheet.gpa")}: </span>
+                    <span className="text-lg font-bold tabular-nums">{locale === "bn" ? num(Number(formatGpa(summary.gpa))) : formatGpa(summary.gpa)}</span>
+                  </div>
+                ) : (
+                  <div>
+                    <span className="text-muted-foreground">{t("marksheet.averagePct")}: </span>
+                    <span className="text-lg font-bold tabular-nums">{num(avgPct)}%</span>
+                  </div>
+                )}
                 <div>
                   <span className="text-muted-foreground">{t("marksheet.grade")}: </span>
                   <Badge variant={gradeVariant(summary.overallGrade)}>{summary.overallGrade}</Badge>

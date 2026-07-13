@@ -5,6 +5,7 @@ import { Plus, Pencil, Trash2 } from "lucide-react";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { DataTable, type Column } from "@/components/dashboard/data-table";
 import { TableFilter } from "@/components/dashboard/table-filter";
+import { ShiftFilter } from "@/components/dashboard/shift-filter";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -115,16 +116,22 @@ export default function TeachersPage() {
         rowKey={(t) => t.id}
         onRowClick={(t) => router.push(`/dashboard/teachers/${t.id}`)}
         filters={
-          <TableFilter
-            placeholder="All statuses"
-            value={list.filters.status}
-            onChange={(v) => list.setFilter("status", v)}
-            options={[
-              { label: "Active", value: "ACTIVE" },
-              { label: "Inactive", value: "INACTIVE" },
-              { label: "Suspended", value: "SUSPENDED" },
-            ]}
-          />
+          <>
+            <ShiftFilter
+              value={(list.filters.shift as "ALL" | "MORNING" | "DAY" | "EVENING") ?? "ALL"}
+              onChange={(v) => list.setFilter("shift", v === "ALL" ? undefined : v)}
+            />
+            <TableFilter
+              placeholder="All statuses"
+              value={list.filters.status}
+              onChange={(v) => list.setFilter("status", v)}
+              options={[
+                { label: "Active", value: "ACTIVE" },
+                { label: "Inactive", value: "INACTIVE" },
+                { label: "Suspended", value: "SUSPENDED" },
+              ]}
+            />
+          </>
         }
       />
       <TeacherForm open={formOpen} onOpenChange={setFormOpen} teacher={editing} campuses={campuses} onSaved={list.refresh} />

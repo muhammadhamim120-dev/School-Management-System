@@ -2,12 +2,12 @@ import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { ok, created, handleError, parsePagination } from "@/lib/api";
 import { smsMessageSchema } from "@/lib/validations";
-import { auth } from "@/lib/auth";
 import { getSmsProvider } from "@/services/sms";
+import { withTenantContext } from "@/lib/api-helpers";
+import { getRequiredTenantId } from "@/lib/tenant-context";
 
 type Recip = { name: string | null; phone: string };
 
-// Resolve recipients for non-CUSTOM audiences from existing records.
 async function resolveAudience(audience: string): Promise<Recip[]> {
   if (audience === "STUDENTS") {
     const rows = await prisma.student.findMany({ where: { phone: { not: null } }, select: { fullName: true, phone: true } });
@@ -32,11 +32,11 @@ async function resolveAudience(audience: string): Promise<Recip[]> {
   return [];
 }
 
-export async function GET(req: NextRequest) {
+export const GET = withTenantContext(async (req: NextRequest) => {
   try {
     const { page, limit, skip } = parsePagination(req.nextUrl.searchParams);
     const status = req.nextUrl.searchParams.get("status")?.trim();
-    const where = status ? { status } : {};
+    const where: Record<string, unknown> = status ? { status } : {};
     const [items, total] = await Promise.all([
       prisma.smsMessage.findMany({ where, skip, take: limit, orderBy: { createdAt: "desc" },
         include: { template: true, _count: { select: { recipients: true } } } }),
@@ -44,11 +44,10 @@ export async function GET(req: NextRequest) {
     ]);
     return ok({ items, total, page, limit, totalPages: Math.ceil(total / limit) });
   } catch (e) { return handleError(e); }
-}
+});
 
-export async function POST(req: NextRequest) {
+export const POST = withTenantContext(async (req: NextRequest) => {
   try {
-    const session = await auth(); if (!session) return handleError({ code: "P2025" });
     const data = smsMessageSchema.parse(await req.json());
 
     const recipients: Recip[] = data.audience === "CUSTOM"
@@ -71,14 +70,14 @@ export async function POST(req: NextRequest) {
         status = failedCount === 0 ? "SENT" : sentCount === 0 ? "FAILED" : "SENT";
         sentAt = new Date();
       } else {
-        // Provider not configured: queue rather than silently succeed.
         status = "QUEUED";
       }
     }
 
+    const schoolId = getRequiredTenantId();
     const message = await prisma.smsMessage.create({ data: {
       title: data.title || null, body: data.body, category: data.category, audience: data.audience, templateId: data.templateId || null,
-      status, provider: providerId, sentAt, totalCount: recipients.length, sentCount, failedCount,
+      status, provider: providerId, sentAt, totalCount: recipients.length, sentCount, failedCount, schoolId,
       recipients: { create: recipients.map((r) => {
         const rs = recipientStatuses.get(r.phone);
         const attempted = data.send && provider.isConfigured();
@@ -94,4 +93,4 @@ export async function POST(req: NextRequest) {
 
     return created(message);
   } catch (e) { return handleError(e); }
-}
+});

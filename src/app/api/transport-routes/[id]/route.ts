@@ -2,9 +2,9 @@ import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { ok, handleError } from "@/lib/api";
 import { transportRouteSchema } from "@/lib/validations";
-import { auth } from "@/lib/auth";
+import { withTenantContext } from "@/lib/api-helpers";
 
-export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export const GET = withTenantContext(async (_req: NextRequest, { params }: { params: Promise<{ id: string }> }) => {
   try {
     const { id } = await params;
     const route = await prisma.transportRoute.findUnique({ where: { id },
@@ -12,10 +12,10 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
     if (!route) return handleError({ code: "P2025" });
     return ok(route);
   } catch (e) { return handleError(e); }
-}
-export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+});
+
+export const PATCH = withTenantContext(async (req: NextRequest, { params }: { params: Promise<{ id: string }> }) => {
   try {
-    const session = await auth(); if (!session) return handleError({ code: "P2025" });
     const { id } = await params;
     const data = transportRouteSchema.partial().parse(await req.json());
     // Replace stops if provided.
@@ -28,12 +28,12 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       include: { vehicle: { include: { driver: true } }, stops: { orderBy: { sequence: "asc" } } } });
     return ok(route);
   } catch (e) { return handleError(e); }
-}
-export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+});
+
+export const DELETE = withTenantContext(async (_req: NextRequest, { params }: { params: Promise<{ id: string }> }) => {
   try {
-    const session = await auth(); if (!session) return handleError({ code: "P2025" });
     const { id } = await params;
     await prisma.transportRoute.delete({ where: { id } });
     return ok({ id });
   } catch (e) { return handleError(e); }
-}
+});

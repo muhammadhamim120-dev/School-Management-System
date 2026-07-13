@@ -1,10 +1,10 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
 import { ok, handleError } from "@/lib/api";
-import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getPaymentGateway, isGatewayId } from "@/services/payments";
 import { logTransaction, recomputeInvoice } from "@/lib/payment-settle";
+import { withTenantContext } from "@/lib/api-helpers";
 
 const schema = z.object({
   paymentId: z.string().min(1),
@@ -12,9 +12,8 @@ const schema = z.object({
   reason: z.string().optional(),
 });
 
-export async function POST(req: NextRequest) {
+export const POST = withTenantContext(async (req: NextRequest) => {
   try {
-    const session = await auth(); if (!session) return handleError({ code: "P2025" });
     const { paymentId, amount, reason } = schema.parse(await req.json());
 
     const payment = await prisma.payment.findUnique({ where: { id: paymentId } });
@@ -46,4 +45,4 @@ export async function POST(req: NextRequest) {
     await recomputeInvoice(payment.invoiceId);
     return ok(updated);
   } catch (e) { return handleError(e); }
-}
+});

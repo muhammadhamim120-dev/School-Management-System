@@ -2,10 +2,19 @@ import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { ok, created, handleError, parsePagination } from "@/lib/api";
 import { studentSchema } from "@/lib/validations";
-import { auth } from "@/lib/auth";
+import { requireAuth } from "@/lib/api-auth";
+import { validateCsrf } from "@/lib/csrf";
+import { deleteCached, cacheKeys } from "@/lib/cache";
+import { tenantWhere } from "@/lib/tenant";
+import { withTenantContext } from "@/lib/api-helpers";
+import { getRequiredTenantId } from "@/lib/tenant-context";
 
-export async function GET(req: NextRequest) {
+export const GET = withTenantContext(async (req: NextRequest) => {
   try {
+    // Require authentication
+    const auth = await requireAuth();
+    if (!auth.authenticated) return auth.error;
+
     const { page, limit, search, skip } = parsePagination(req.nextUrl.searchParams);
     const sp = req.nextUrl.searchParams;
 
@@ -35,7 +44,7 @@ export async function GET(req: NextRequest) {
     if (status) AND.push({ status });
     if (classId) AND.push({ classId });
     if (sectionId) AND.push({ sectionId });
-    const where = AND.length ? { AND } : {};
+    const where = tenantWhere(AND.length ? { AND } : {});
 
     const [items, total] = await Promise.all([
       prisma.student.findMany({
@@ -51,17 +60,28 @@ export async function GET(req: NextRequest) {
   } catch (e) {
     return handleError(e);
   }
-}
+});
 
-export async function POST(req: NextRequest) {
+export const POST = withTenantContext(async (req: NextRequest) => {
   try {
-    const session = await auth();
-    if (!session) return handleError({ code: "P2025" });
+    // CSRF protection
+    const csrfError = validateCsrf(req);
+    if (csrfError) return csrfError;
+
+    // Require authentication
+    const auth = await requireAuth();
+    if (!auth.authenticated) return auth.error;
+
     const body = await req.json();
     const data = studentSchema.parse(body);
-    const student = await prisma.student.create({ data });
+    const schoolId = getRequiredTenantId();
+    const student = await prisma.student.create({ data: { ...data, schoolId } });
+
+    // Invalidate dashboard cache when students change
+    deleteCached(cacheKeys.dashboard());
+
     return created(student);
   } catch (e) {
     return handleError(e);
   }
-}
+});

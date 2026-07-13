@@ -1,25 +1,26 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { ok, created, handleError, parsePagination } from "@/lib/api";
+import { ok, handleError } from "@/lib/api";
 import { hostelRoomSchema } from "@/lib/validations";
-import { auth } from "@/lib/auth";
+import { tenantWhere } from "@/lib/tenant";
+import { withTenantContext } from "@/lib/api-helpers";
 
-export async function GET(req: NextRequest) {
+export const GET = withTenantContext(async (req: NextRequest) => {
   try {
-    const { page, limit, skip } = parsePagination(req.nextUrl.searchParams);
+    const { page, limit, skip } = await import("@/lib/api").then(m => m.parsePagination(req.nextUrl.searchParams));
     const buildingId = req.nextUrl.searchParams.get("buildingId")?.trim();
-    const where = buildingId ? { buildingId } : {};
+    const where = tenantWhere(buildingId ? { buildingId } : {});
     const [items, total] = await Promise.all([
       prisma.hostelRoom.findMany({ where, skip, take: limit, orderBy: { roomNo: "asc" }, include: { building: true, _count: { select: { allocations: true } } } }),
       prisma.hostelRoom.count({ where }),
     ]);
     return ok({ items, total, page, limit, totalPages: Math.ceil(total / limit) });
   } catch (e) { return handleError(e); }
-}
-export async function POST(req: NextRequest) {
+});
+
+export const POST = withTenantContext(async (req: NextRequest) => {
   try {
-    const session = await auth(); if (!session) return handleError({ code: "P2025" });
     const data = hostelRoomSchema.parse(await req.json());
-    return created(await prisma.hostelRoom.create({ data, include: { building: true } }));
+    return ok(await prisma.hostelRoom.create({ data, include: { building: true } }));
   } catch (e) { return handleError(e); }
-}
+});

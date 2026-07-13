@@ -11,6 +11,7 @@ import type {
   SessionWithCount, ApplicationWithSession,
   RiskAssessmentWithStudent,
   PaymentTransaction,
+  HomeworkWithRelations, QuestionWithRelations, OnlineExamWithRelations,
 } from "@/types";
 import type {
   StudentInput, TeacherInput, ParentInput, ClassInput, SectionInput, SubjectInput,
@@ -22,6 +23,7 @@ import type {
   HostelBuildingInput, HostelRoomInput, HostelAllocationInput,
   SmsTemplateInput, SmsMessageInput,
   AdmissionSessionInput, ApplicationInput,
+  HomeworkInput, QuestionInput, OnlineExamInput,
 } from "@/lib/validations";
 
 export const studentsApi = createResource<StudentWithRelations, StudentInput>("students");
@@ -80,3 +82,10 @@ export const riskAssessmentsApi = createResource<RiskAssessmentWithStudent, neve
 
 // Payment transaction logs (read-only)
 export const paymentTransactionsApi = createResource<PaymentTransaction, never>("payment-transactions");
+
+// Homework
+export const homeworkApi = createResource<HomeworkWithRelations, HomeworkInput>("homework");
+
+// Online examination: question bank + exams (sub-routes use raw request())
+export const questionsApi = createResource<QuestionWithRelations, QuestionInput>("questions");
+export const onlineExamsApi = createResource<OnlineExamWithRelations, OnlineExamInput>("online-exams");

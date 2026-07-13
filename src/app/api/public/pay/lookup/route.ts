@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
       return fail("Invalid request body. Expected JSON.", 400);
     }
     const { studentId, phone, dob } = schema.parse(raw);
-    const student = await prisma.student.findUnique({
+    const student = await prisma.student.findFirst({
       where: { studentId },
       include: { class: true, section: true },
     });

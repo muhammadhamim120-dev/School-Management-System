@@ -1,16 +1,15 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { ok, handleError } from "@/lib/api";
-import { auth } from "@/lib/auth";
 import { scoreRisk } from "@/lib/risk";
+import { withTenantContext } from "@/lib/api-helpers";
 
 // Recompute risk for every active student from current attendance, dues, results.
-export async function POST(_req: NextRequest) {
+export const POST = withTenantContext(async () => {
   try {
-    const session = await auth(); if (!session) return handleError({ code: "P2025" });
     const students = await prisma.student.findMany({ where: { status: "ACTIVE" }, select: { id: true } });
 
-    let created = 0;
+    let createdCount = 0;
     for (const s of students as { id: string }[]) {
       const [attendance, invoices, results] = await Promise.all([
         prisma.attendance.groupBy({ by: ["status"], where: { studentId: s.id }, _count: { _all: true } }),
@@ -35,11 +34,11 @@ export async function POST(_req: NextRequest) {
 
       const risk = scoreRisk({ attendanceRate, duesAmount, avgResult });
       await prisma.riskAssessment.create({ data: {
-        studentId: s.id, score: risk.score, level: risk.level,
+        studentId: s.id, score: risk.score, level: risk.level as never,
         attendanceRate, duesAmount, avgResult, factors: risk.factors.join("; "),
-      } });
-      created++;
+      } as never });
+      createdCount++;
     }
-    return ok({ computed: created });
+    return ok({ computed: createdCount });
   } catch (e) { return handleError(e); }
-}
+});

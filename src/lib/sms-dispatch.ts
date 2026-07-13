@@ -27,6 +27,9 @@ export async function dispatchRecipients(messageId: string, recipients: Recipien
         error: ok ? null : (res?.error ?? "Unknown error"),
         attempts: r.attempts + 1,
         lastAttemptAt: new Date(),
+        // Persist the provider's message id so inbound delivery reports (DLR)
+        // can be correlated back to this recipient.
+        ...(ok && res?.providerRef ? { providerRef: res.providerRef } : {}),
       },
     });
     if (ok) sent++; else failed++;

@@ -2,13 +2,12 @@ import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { ok, handleError } from "@/lib/api";
 import { returnLoanSchema } from "@/lib/validations";
-import { auth } from "@/lib/auth";
+import { withTenantContext } from "@/lib/api-helpers";
 import { z } from "zod";
 
 // PATCH handles both "return" and "renew" actions via ?action=.
-export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export const PATCH = withTenantContext(async (req: NextRequest, { params }: { params: Promise<{ id: string }> }) => {
   try {
-    const session = await auth(); if (!session) return handleError({ code: "P2025" });
     const { id } = await params;
     const action = req.nextUrl.searchParams.get("action") ?? "return";
     const body = await req.json().catch(() => ({}));
@@ -25,7 +24,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
     // return / lost / damaged
     const data = returnLoanSchema.parse(body);
-    const result = await prisma.$transaction(async (tx: typeof prisma) => {
+    const result = await prisma.$transaction(async (tx) => {
       const loan = await tx.bookLoan.findUnique({ where: { id } });
       if (!loan) throw { code: "P2025" };
       const updated = await tx.bookLoan.update({ where: { id }, data: {
@@ -39,13 +38,12 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     });
     return ok(result);
   } catch (e) { return handleError(e); }
-}
+});
 
-export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export const DELETE = withTenantContext(async (_req: NextRequest, { params }: { params: Promise<{ id: string }> }) => {
   try {
-    const session = await auth(); if (!session) return handleError({ code: "P2025" });
     const { id } = await params;
     await prisma.bookLoan.delete({ where: { id } });
     return ok({ id });
   } catch (e) { return handleError(e); }
-}
+});

@@ -1,8 +1,9 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { ok, handleError } from "@/lib/api";
+import { withTenantContext } from "@/lib/api-helpers";
 
-export async function GET(_req: NextRequest) {
+export const GET = withTenantContext(async (_req: NextRequest) => {
   try {
     const [total, levelAgg, avgAgg, lastComputed, topRisk] = await Promise.all([
       prisma.riskAssessment.count(),
@@ -19,4 +20,4 @@ export async function GET(_req: NextRequest) {
       topRisk,
     });
   } catch (e) { return handleError(e); }
-}
+});

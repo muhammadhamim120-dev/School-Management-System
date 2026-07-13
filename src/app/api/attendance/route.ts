@@ -2,9 +2,12 @@ import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { ok, created, handleError } from "@/lib/api";
 import { attendanceSchema } from "@/lib/validations";
-import { auth } from "@/lib/auth";
+import { deleteCached, cacheKeys } from "@/lib/cache";
+import { tenantWhere } from "@/lib/tenant";
+import { withTenantContext } from "@/lib/api-helpers";
+import { getRequiredTenantId } from "@/lib/tenant-context";
 
-export async function GET(req: NextRequest) {
+export const GET = withTenantContext(async (req: NextRequest) => {
   try {
     const date = req.nextUrl.searchParams.get("date");
     const studentId = req.nextUrl.searchParams.get("studentId") || undefined;
@@ -16,36 +19,46 @@ export async function GET(req: NextRequest) {
     }
     if (studentId) where.studentId = studentId;
     const items = await prisma.attendance.findMany({
-      where, orderBy: { date: "desc" }, include: { student: true },
+      where: tenantWhere(where), orderBy: { date: "desc" }, include: { student: true },
     });
     return ok({ items, total: items.length, page: 1, limit: items.length, totalPages: 1 });
   } catch (e) { return handleError(e); }
-}
+});
 
-export async function POST(req: NextRequest) {
+export const POST = withTenantContext(async (req: NextRequest) => {
   try {
-    const session = await auth(); if (!session) return handleError({ code: "P2025" });
     const body = await req.json();
+    const schoolId = getRequiredTenantId();
     // Accept single record or bulk array under `records`
     if (Array.isArray(body?.records)) {
       const records = body.records.map((r: unknown) => attendanceSchema.parse(r));
-      const results = await Promise.all(
+
+      // Batch upsert using transaction for better performance
+      const results = await prisma.$transaction(
         records.map((r: { studentId: string; date: Date; status: string; remark?: string }) =>
           prisma.attendance.upsert({
             where: { studentId_date: { studentId: r.studentId, date: r.date } },
             update: { status: r.status as never, remark: r.remark },
-            create: r as never,
+            create: { ...r, schoolId } as never,
           })
         )
       );
+
+      // Invalidate dashboard cache when attendance changes
+      deleteCached(cacheKeys.dashboard());
+
       return created(results);
     }
     const data = attendanceSchema.parse(body);
     const record = await prisma.attendance.upsert({
       where: { studentId_date: { studentId: data.studentId, date: data.date } },
       update: { status: data.status, remark: data.remark },
-      create: data,
+      create: { ...data, schoolId },
     });
+
+    // Invalidate dashboard cache when attendance changes
+    deleteCached(cacheKeys.dashboard());
+
     return created(record);
   } catch (e) { return handleError(e); }
-}
+});

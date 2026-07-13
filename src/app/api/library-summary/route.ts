@@ -1,8 +1,9 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { ok, handleError } from "@/lib/api";
+import { withTenantContext } from "@/lib/api-helpers";
 
-export async function GET(_req: NextRequest) {
+export const GET = withTenantContext(async (_req: NextRequest) => {
   try {
     const now = new Date();
     const [totalBooks, totalCopies, copyStatus, activeLoans, overdue, fineAgg, recentLoans, topCategories] = await Promise.all([
@@ -26,9 +27,9 @@ export async function GET(_req: NextRequest) {
       copyStatus: copyStatus.map((s: { status: string; _count: { _all: number } }) => ({ status: s.status, count: s._count._all })),
       activeLoans,
       overdue,
-      finesCollected: fineAgg._sum.fineAmount ?? 0,
+      finesCollected: fineAgg._sum?.fineAmount ?? 0,
       recentLoans,
       topCategories: topCategories.map((c: { categoryId: string | null; _count: { _all: number } }) => ({ name: catName(c.categoryId), count: c._count._all })),
     });
   } catch (e) { return handleError(e); }
-}
+});

@@ -2,9 +2,15 @@ import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { ok, handleError } from "@/lib/api";
 import { gatewayAvailability } from "@/services/payments";
+import { tenantWhere } from "@/lib/tenant";
+import { withTenantContext } from "@/lib/api-helpers";
 
-export async function GET(_req: NextRequest) {
+export const GET = withTenantContext(async (_req: NextRequest) => {
   try {
+    const auth = await import("@/lib/api-auth").then(m => m.requireAdmin());
+    if (!auth.authenticated) return auth.error;
+
+    const invoiceWhere = tenantWhere({});
     const [collectedAgg, refundedAgg, byGateway, byStatus, recent] = await Promise.all([
       prisma.payment.aggregate({ _sum: { amount: true }, where: { status: { in: ["SUCCESS", "REFUNDED"] } } }),
       prisma.payment.aggregate({ _sum: { refundedAmount: true } }),
@@ -12,8 +18,8 @@ export async function GET(_req: NextRequest) {
       prisma.payment.groupBy({ by: ["status"], _count: { _all: true } }),
       prisma.payment.findMany({ orderBy: { createdAt: "desc" }, take: 8, include: { invoice: { include: { student: true } } } }),
     ]);
-    const gross = collectedAgg._sum.amount ?? 0;
-    const refunded = refundedAgg._sum.refundedAmount ?? 0;
+    const gross = collectedAgg._sum?.amount ?? 0;
+    const refunded = refundedAgg._sum?.refundedAmount ?? 0;
     return ok({
       grossCollected: gross,
       refunded,
@@ -25,4 +31,4 @@ export async function GET(_req: NextRequest) {
       availability: gatewayAvailability(),
     });
   } catch (e) { return handleError(e); }
-}
+});

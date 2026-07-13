@@ -2,10 +2,17 @@ import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { ok, created, handleError, parsePagination } from "@/lib/api";
 import { parentSchema } from "@/lib/validations";
-import { auth } from "@/lib/auth";
+import { requireAuth } from "@/lib/api-auth";
+import { tenantWhere } from "@/lib/tenant";
+import { withTenantContext } from "@/lib/api-helpers";
+import { getRequiredTenantId } from "@/lib/tenant-context";
 
-export async function GET(req: NextRequest) {
+export const GET = withTenantContext(async (req: NextRequest) => {
   try {
+    // Require authentication
+    const auth = await requireAuth();
+    if (!auth.authenticated) return auth.error;
+
     const { page, limit, search, skip } = parsePagination(req.nextUrl.searchParams);
     const sp = req.nextUrl.searchParams;
 
@@ -16,16 +23,18 @@ export async function GET(req: NextRequest) {
       ? { [sortField]: sortDir as "asc" | "desc" }
       : { createdAt: "desc" as const };
 
-    const where = search
-      ? {
-          OR: [
-            { fullName: { contains: search, mode: "insensitive" as const } },
-            { parentId: { contains: search, mode: "insensitive" as const } },
-            { email: { contains: search, mode: "insensitive" as const } },
-            { occupation: { contains: search, mode: "insensitive" as const } },
-          ],
-        }
-      : {};
+    const where = tenantWhere(
+      search
+        ? {
+            OR: [
+              { fullName: { contains: search, mode: "insensitive" as const } },
+              { parentId: { contains: search, mode: "insensitive" as const } },
+              { email: { contains: search, mode: "insensitive" as const } },
+              { occupation: { contains: search, mode: "insensitive" as const } },
+            ],
+          }
+        : {}
+    );
     const [items, total] = await Promise.all([
       prisma.parent.findMany({ where, skip, take: limit, orderBy, include: { students: true } }),
       prisma.parent.count({ where }),
@@ -34,19 +43,22 @@ export async function GET(req: NextRequest) {
   } catch (e) {
     return handleError(e);
   }
-}
+});
 
-export async function POST(req: NextRequest) {
+export const POST = withTenantContext(async (req: NextRequest) => {
   try {
-    const session = await auth();
-    if (!session) return handleError({ code: "P2025" });
+    // Require authentication
+    const auth = await requireAuth();
+    if (!auth.authenticated) return auth.error;
+
     const { studentIds, ...data } = parentSchema.parse(await req.json());
+    const schoolId = getRequiredTenantId();
     const parent = await prisma.parent.create({
-      data: { ...data, students: studentIds?.length ? { connect: studentIds.map((id) => ({ id })) } : undefined },
+      data: { ...data, schoolId, students: studentIds?.length ? { connect: studentIds.map((id) => ({ id })) } : undefined },
       include: { students: true },
     });
     return created(parent);
   } catch (e) {
     return handleError(e);
   }
-}
+});

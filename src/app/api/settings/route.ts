@@ -1,8 +1,12 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { ok, handleError } from "@/lib/api";
-import { auth } from "@/lib/auth";
+import { requireAdmin } from "@/lib/api-auth";
+import { validateCsrf } from "@/lib/csrf";
 import { z } from "zod";
+import { tenantWhere } from "@/lib/tenant";
+import { withTenantContext } from "@/lib/api-helpers";
+import { getRequiredTenantId } from "@/lib/tenant-context";
 
 const settingSchema = z.object({
   schoolName: z.string().min(1).optional(),
@@ -14,22 +18,29 @@ const settingSchema = z.object({
 });
 
 async function getOrCreate() {
-  let setting = await prisma.setting.findFirst();
-  if (!setting) setting = await prisma.setting.create({ data: {} });
+  const schoolId = getRequiredTenantId();
+  let setting = await prisma.setting.findFirst({ where: tenantWhere({}) });
+  if (!setting) setting = await prisma.setting.create({ data: { schoolId } });
   return setting;
 }
 
-export async function GET() {
+export const GET = withTenantContext(async () => {
   try {
     return ok(await getOrCreate());
   } catch (e) { return handleError(e); }
-}
+});
 
-export async function PATCH(req: NextRequest) {
+export const PATCH = withTenantContext(async (req: NextRequest) => {
   try {
-    const session = await auth(); if (!session) return handleError({ code: "P2025" });
+    // CSRF protection
+    const csrfError = validateCsrf(req);
+    if (csrfError) return csrfError;
+
+    const auth = await requireAdmin();
+    if (!auth.authenticated) return auth.error;
+
     const data = settingSchema.parse(await req.json());
     const current = await getOrCreate();
     return ok(await prisma.setting.update({ where: { id: current.id }, data }));
   } catch (e) { return handleError(e); }
-}
+});

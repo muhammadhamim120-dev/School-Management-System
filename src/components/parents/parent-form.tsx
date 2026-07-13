@@ -23,7 +23,7 @@ type Props = {
 };
 
 export function ParentForm({ open, onOpenChange, parent, onSaved }: Props) {
-  const { t } = useI18n();
+  const { t, num } = useI18n();
   const { toast } = useToast();
   const isEdit = !!parent;
   const [students, setStudents] = React.useState<StudentWithRelations[]>([]);
@@ -57,11 +57,11 @@ export function ParentForm({ open, onOpenChange, parent, onSaved }: Props) {
       const payload = { ...values, studentIds: selected };
       if (isEdit && parent) await parentsApi.update(parent.id, payload);
       else await parentsApi.create(payload);
-      toast({ variant: "success", title: isEdit ? "Parent updated" : "Parent created" });
+      toast({ variant: "success", title: isEdit ? t("toast.parentUpdated") : t("toast.parentCreated") });
       onOpenChange(false);
       onSaved();
     } catch (e) {
-      toast({ variant: "destructive", title: "Error", description: (e as Error).message });
+      toast({ variant: "destructive", title: t("common.error"), description: (e as Error).message });
     }
   };
 
@@ -69,7 +69,7 @@ export function ParentForm({ open, onOpenChange, parent, onSaved }: Props) {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle>{isEdit ? "Edit Parent" : "Add Parent"}</DialogTitle>
+          <DialogTitle>{isEdit ? t("form.editParent") : t("form.addParent")}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit(onSubmit)} className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Field label={t("field.parentId")} error={errors.parentId?.message} required>
@@ -91,7 +91,7 @@ export function ParentForm({ open, onOpenChange, parent, onSaved }: Props) {
             <Input {...register("emergencyContact")} />
           </Field>
           <Field label={t("field.photoUrl")} error={errors.photo?.message} className="sm:col-span-2">
-            <Input {...register("photo")} placeholder="https://..." />
+            <Input {...register("photo")} placeholder={t("placeholder.photoUrl")} />
           </Field>
           <Field label={t("field.address")} error={errors.address?.message} className="sm:col-span-2">
             <Textarea {...register("address")} />
@@ -100,7 +100,7 @@ export function ParentForm({ open, onOpenChange, parent, onSaved }: Props) {
             <Field label={t("field.linkedStudents")}>
               <div className="max-h-40 overflow-y-auto rounded-md border p-2">
                 {students.length === 0 ? (
-                  <p className="px-1 py-2 text-sm text-muted-foreground">No students available</p>
+                  <p className="px-1 py-2 text-sm text-muted-foreground">{t("parent.noStudentsAvailable")}</p>
                 ) : (
                   <div className="flex flex-wrap gap-2">
                     {students.map((s) => (
@@ -124,14 +124,14 @@ export function ParentForm({ open, onOpenChange, parent, onSaved }: Props) {
             </Field>
             {selected.length > 0 && (
               <p className="mt-1 text-xs text-muted-foreground">
-                <Badge variant="secondary">{selected.length}</Badge> student(s) selected
+                <Badge variant="secondary">{num(selected.length)}</Badge> {t("parent.studentsSelected")}
               </p>
             )}
           </div>
           <DialogFooter className="sm:col-span-2">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>{t("common.cancel")}</Button>
             <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? "Saving..." : isEdit ? "Update" : "Create"}
+              {isSubmitting ? t("common.saving") : isEdit ? t("common.update") : t("common.create")}
             </Button>
           </DialogFooter>
         </form>

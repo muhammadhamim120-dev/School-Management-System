@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { deriveInvoiceStatus } from "@/lib/finance";
+import { getRequiredTenantId } from "@/lib/tenant-context";
 
 type GatewayValue = "BKASH" | "NAGAD" | "ROCKET" | "SSLCOMMERZ";
 type EventValue = "INITIATE" | "CALLBACK" | "WEBHOOK" | "VERIFY" | "REFUND" | "MANUAL";
@@ -42,7 +43,7 @@ export async function settlePayment(input: {
   gatewayRef: string;
   event: EventValue;
 }) {
-  return prisma.$transaction(async (tx: typeof prisma) => {
+  return prisma.$transaction(async (tx) => {
     // Idempotency: skip if this gatewayRef was already settled.
     const existing = await tx.payment.findFirst({ where: { gatewayRef: input.gatewayRef, gateway: input.gateway } });
     if (existing) {
@@ -58,6 +59,7 @@ export async function settlePayment(input: {
     const payment = await tx.payment.create({ data: {
       invoiceId: input.invoiceId, amount: input.amount, method: input.gateway,
       status: "SUCCESS", gateway: input.gateway, gatewayRef: input.gatewayRef,
+      schoolId: getRequiredTenantId(),
     } });
     await tx.paymentTransaction.create({ data: {
       paymentId: payment.id, invoiceId: input.invoiceId, gateway: input.gateway, gatewayRef: input.gatewayRef,
@@ -75,7 +77,7 @@ export async function settlePayment(input: {
 
 /** Recompute an invoice's paidTotal + status after a refund. */
 export async function recomputeInvoice(invoiceId: string) {
-  return prisma.$transaction(async (tx: typeof prisma) => {
+  return prisma.$transaction(async (tx) => {
     const invoice = await tx.invoice.findUnique({ where: { id: invoiceId } });
     if (!invoice) return null;
     const payments = await tx.payment.findMany({ where: { invoiceId, status: { in: ["SUCCESS", "REFUNDED"] } } });

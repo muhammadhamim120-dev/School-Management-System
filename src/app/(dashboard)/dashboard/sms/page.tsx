@@ -2,7 +2,7 @@
 import * as React from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Plus, Trash2, MessageSquare, Send, Users, FileText, CheckCircle2, XCircle } from "lucide-react";
+import { Plus, Trash2, MessageSquare, Send, Users, FileText, CheckCircle2, XCircle, RotateCw, Eye } from "lucide-react";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DataTable, type Column } from "@/components/dashboard/data-table";
@@ -32,6 +32,30 @@ type Summary = {
   templates: number; totalMessages: number; totalSent: number; totalRecipients: number;
   statusBreakdown: { status: string; count: number }[];
   provider: { active: string; configured: boolean; providers: { id: string; configured: boolean }[] };
+};
+
+type SmsRecipientRow = {
+  id: string;
+  name?: string | null;
+  phone: string;
+  status: string;
+  error?: string | null;
+  attempts: number;
+  providerRef?: string | null;
+  deliveredAt?: string | null;
+  lastAttemptAt?: string | null;
+};
+
+type SmsMessageDetail = {
+  id: string;
+  title?: string | null;
+  body: string;
+  status: string;
+  totalCount: number;
+  sentCount: number;
+  failedCount: number;
+  deliveredCount: number;
+  recipients: SmsRecipientRow[];
 };
 
 export default function SmsPage() {
@@ -107,8 +131,41 @@ function MessagesTab({ onChange }: { onChange: () => void }) {
   const [templateId, setTemplateId] = React.useState("");
   const [customNumbers, setCustomNumbers] = React.useState("");
   const [saving, setSaving] = React.useState(false);
+  const [retryingId, setRetryingId] = React.useState<string | null>(null);
+  const [deliveryFor, setDeliveryFor] = React.useState<SmsMessageWithRelations | null>(null);
+  const [deliveryData, setDeliveryData] = React.useState<SmsMessageDetail | null>(null);
+  const [deliveryLoading, setDeliveryLoading] = React.useState(false);
 
   React.useEffect(() => { smsTemplatesApi.list({ limit: 100 }).then((d) => setTemplates(d.items)).catch(() => {}); }, []);
+
+  const retry = async (m: SmsMessageWithRelations) => {
+    setRetryingId(m.id);
+    try {
+      await request(`/api/sms-messages/${m.id}/retry`, { method: "POST" });
+      toast({ variant: "success", title: t("sms.retryStarted") });
+      list.refresh(); onChange();
+    } catch (e) {
+      const msg = (e as Error).message || t("sms.noFailed");
+      toast({ variant: "destructive", title: t("common.error"), description: msg });
+    } finally {
+      setRetryingId(null);
+    }
+  };
+
+  const openDelivery = async (m: SmsMessageWithRelations) => {
+    setDeliveryFor(m);
+    setDeliveryData(null);
+    setDeliveryLoading(true);
+    try {
+      const detail = await request<SmsMessageDetail>(`/api/sms-messages/${m.id}`);
+      setDeliveryData(detail);
+    } catch (e) {
+      toast({ variant: "destructive", title: t("common.error"), description: (e as Error).message });
+      setDeliveryFor(null);
+    } finally {
+      setDeliveryLoading(false);
+    }
+  };
 
   const openForm = () => { setTitle(""); setBody(""); setAudience("STUDENTS"); setCategory("GENERAL"); setTemplateId(""); setCustomNumbers(""); setOpen(true); };
   const applyTemplate = (id: string) => {
@@ -145,7 +202,24 @@ function MessagesTab({ onChange }: { onChange: () => void }) {
     { key: "status", header: t("sms.status"), render: (m) => <Badge variant={statusVariant(m.status)} dot>{m.status}</Badge> },
     { key: "date", header: t("col.date"), render: (m) => date(m.createdAt) },
     { key: "actions", header: "", className: "text-right", render: (m) => (
-      <Button variant="ghost" size="icon" className="text-destructive" onClick={() => setDeleting(m)}><Trash2 className="h-4 w-4" /></Button>
+      <div className="flex justify-end gap-1" onClick={(e) => e.stopPropagation()}>
+        <Button variant="ghost" size="icon" onClick={() => openDelivery(m)} aria-label={t("sms.viewDelivery")} title={t("sms.viewDelivery")}>
+          <Eye className="h-4 w-4" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => retry(m)}
+          disabled={retryingId === m.id || m.failedCount === 0}
+          aria-label={t("sms.retry")}
+          title={t("sms.retry")}
+        >
+          <RotateCw className={`h-4 w-4 ${retryingId === m.id ? "animate-spin" : ""}`} />
+        </Button>
+        <Button variant="ghost" size="icon" className="text-destructive" onClick={() => setDeleting(m)} aria-label={t("common.delete")}>
+          <Trash2 className="h-4 w-4" />
+        </Button>
+      </div>
     ) },
   ];
   return (
@@ -183,6 +257,64 @@ function MessagesTab({ onChange }: { onChange: () => void }) {
         </DialogFooter>
       </DialogContent></Dialog>
       <ConfirmDialog open={!!deleting} onOpenChange={(o) => !o && setDeleting(null)} title="Delete message?" description="Removes this message and its recipients." onConfirm={del} />
+
+      {/* Per-recipient delivery report */}
+      <Dialog open={!!deliveryFor} onOpenChange={(o) => !o && setDeliveryFor(null)}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>{t("sms.delivery")}</DialogTitle>
+          </DialogHeader>
+          {deliveryLoading ? (
+            <div className="space-y-2 py-6">{Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-10 w-full" />)}</div>
+          ) : deliveryData ? (
+            <div className="space-y-4">
+              <div className="rounded-lg bg-muted/40 p-3 text-sm">
+                <div className="max-w-xl truncate font-medium">{deliveryFor?.title || deliveryData.body}</div>
+                <div className="mt-2 flex flex-wrap gap-4 text-muted-foreground">
+                  <span>{t("sms.recipients")}: <span className="font-medium text-foreground tabular-nums">{num(deliveryData.totalCount)}</span></span>
+                  <span className="text-success">{t("sms.delivered")}: <span className="font-medium tabular-nums">{num(deliveryData.deliveredCount)}</span></span>
+                  <span>{t("sms.totalSent")}: <span className="font-medium tabular-nums">{num(deliveryData.sentCount)}</span></span>
+                  <span className="text-destructive">{t("sms.retry")}: <span className="font-medium tabular-nums">{num(deliveryData.failedCount)}</span></span>
+                </div>
+              </div>
+              <div className="max-h-80 overflow-auto rounded-md border">
+                <table className="w-full text-sm">
+                  <thead className="sticky top-0 bg-muted/60 text-left">
+                    <tr>
+                      <th className="px-3 py-2 font-medium">{t("sms.recipient")}</th>
+                      <th className="px-3 py-2 font-medium">{t("col.phone")}</th>
+                      <th className="px-3 py-2 font-medium">{t("col.status")}</th>
+                      <th className="px-3 py-2 text-right font-medium">{t("sms.attempts")}</th>
+                      <th className="px-3 py-2 font-medium">{t("sms.lastAttempt")}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {deliveryData.recipients.map((r) => (
+                      <tr key={r.id} className="border-t">
+                        <td className="px-3 py-2">{r.name || "—"}</td>
+                        <td className="px-3 py-2 tabular-nums">{r.phone}</td>
+                        <td className="px-3 py-2"><Badge variant={statusVariant(r.status)} dot>{r.status}</Badge></td>
+                        <td className="px-3 py-2 text-right tabular-nums">{num(r.attempts)}</td>
+                        <td className="px-3 py-2 text-xs text-muted-foreground">{r.lastAttemptAt ? date(r.lastAttemptAt) : "—"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              {deliveryData.recipients.some((r) => r.error) && (
+                <div className="rounded-md border border-destructive/30 bg-destructive/5 p-3 text-xs">
+                  <div className="mb-1 font-medium text-destructive">{t("common.error")}</div>
+                  <ul className="space-y-1 text-muted-foreground">
+                    {deliveryData.recipients.filter((r) => r.error).slice(0, 6).map((r) => (
+                      <li key={r.id} className="tabular-nums">{r.phone}: {r.error}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          ) : null}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -2,9 +2,10 @@ import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { ok, created, handleError, parsePagination } from "@/lib/api";
 import { issueLoanSchema } from "@/lib/validations";
-import { auth } from "@/lib/auth";
+import { tenantWhere } from "@/lib/tenant";
+import { withTenantContext } from "@/lib/api-helpers";
 
-export async function GET(req: NextRequest) {
+export const GET = withTenantContext(async (req: NextRequest) => {
   try {
     const { page, limit, skip } = parsePagination(req.nextUrl.searchParams);
     const sp = req.nextUrl.searchParams;
@@ -15,7 +16,7 @@ export async function GET(req: NextRequest) {
     if (status) AND.push({ status });
     if (studentId) AND.push({ studentId });
     if (teacherId) AND.push({ teacherId });
-    const where = AND.length ? { AND } : {};
+    const where = tenantWhere(AND.length ? { AND } : {});
     const [items, total] = await Promise.all([
       prisma.bookLoan.findMany({ where, skip, take: limit, orderBy: { issuedAt: "desc" },
         include: { copy: { include: { book: true } }, student: true, teacher: true } }),
@@ -23,14 +24,13 @@ export async function GET(req: NextRequest) {
     ]);
     return ok({ items, total, page, limit, totalPages: Math.ceil(total / limit) });
   } catch (e) { return handleError(e); }
-}
+});
 
-export async function POST(req: NextRequest) {
+export const POST = withTenantContext(async (req: NextRequest) => {
   try {
-    const session = await auth(); if (!session) return handleError({ code: "P2025" });
     const data = issueLoanSchema.parse(await req.json());
 
-    const loan = await prisma.$transaction(async (tx: typeof prisma) => {
+    const loan = await prisma.$transaction(async (tx) => {
       const copy = await tx.bookCopy.findUnique({ where: { id: data.copyId } });
       if (!copy) throw { code: "P2025" };
       if (copy.status !== "AVAILABLE") throw { code: "CONFLICT", message: "This copy is not available for issue." };
@@ -48,4 +48,4 @@ export async function POST(req: NextRequest) {
     });
     return created(loan);
   } catch (e) { return handleError(e); }
-}
+});

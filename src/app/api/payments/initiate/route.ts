@@ -1,10 +1,10 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
 import { ok, handleError } from "@/lib/api";
-import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getPaymentGateway, isGatewayId } from "@/services/payments";
 import { logTransaction } from "@/lib/payment-settle";
+import { withTenantContext } from "@/lib/api-helpers";
 
 const schema = z.object({
   invoiceId: z.string().min(1),
@@ -12,9 +12,8 @@ const schema = z.object({
   amount: z.coerce.number().positive(),
 });
 
-export async function POST(req: NextRequest) {
+export const POST = withTenantContext(async (req: NextRequest) => {
   try {
-    const session = await auth(); if (!session) return handleError({ code: "P2025" });
     const { invoiceId, gateway, amount } = schema.parse(await req.json());
 
     const invoice = await prisma.invoice.findUnique({ where: { id: invoiceId }, include: { student: true } });
@@ -42,4 +41,4 @@ export async function POST(req: NextRequest) {
     if (!result.ok) return handleError({ code: "CONFLICT", message: result.error });
     return ok({ redirectUrl: result.redirectUrl, gatewayRef: result.gatewayRef });
   } catch (e) { return handleError(e); }
-}
+});

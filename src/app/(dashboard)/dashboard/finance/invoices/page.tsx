@@ -80,7 +80,7 @@ function InvoicesPageInner() {
 
   const createInvoice = async () => {
     if (!studentId || !dueDate || items.some((i) => !i.description || !i.amount)) {
-      toast({ variant: "destructive", title: "Missing fields", description: "Student, due date, and each line item's description and amount are required." });
+      toast({ variant: "destructive", title: t("toast.missingFields"), description: t("toast.missingFieldsDesc") });
       return;
     }
     setSaving(true);
@@ -96,10 +96,10 @@ function InvoicesPageInner() {
           discount: Number(i.discount) || 0,
         })),
       } as never);
-      toast({ variant: "success", title: "Invoice created" });
+      toast({ variant: "success", title: t("toast.invoiceCreated") });
       setCreateOpen(false); resetCreate(); list.refresh();
     } catch (e) {
-      toast({ variant: "destructive", title: "Couldn't create invoice", description: (e as Error).message });
+      toast({ variant: "destructive", title: t("toast.couldNotCreate"), description: (e as Error).message });
     } finally { setSaving(false); }
   };
 
@@ -122,10 +122,10 @@ function InvoicesPageInner() {
         gateway: gateway as never,
         gatewayRef: payRef || undefined,
       } as never);
-      toast({ variant: "success", title: "Payment recorded" });
+      toast({ variant: "success", title: t("toast.paymentRecorded") });
       setPayFor(null); list.refresh();
     } catch (e) {
-      toast({ variant: "destructive", title: "Couldn't record payment", description: (e as Error).message });
+      toast({ variant: "destructive", title: t("toast.couldNotRecord"), description: (e as Error).message });
     } finally { setPayLoading(false); }
   };
 
@@ -133,10 +133,10 @@ function InvoicesPageInner() {
     if (!deleting) return;
     try {
       await request(`/api/invoices/${deleting.id}`, { method: "DELETE" });
-      toast({ variant: "success", title: "Invoice deleted" });
+      toast({ variant: "success", title: t("toast.invoiceDeleted") });
       setDeleting(null); list.refresh();
     } catch (e) {
-      toast({ variant: "destructive", title: "Couldn't delete", description: (e as Error).message });
+      toast({ variant: "destructive", title: t("toast.couldNotDelete"), description: (e as Error).message });
     }
   };
 
@@ -184,18 +184,18 @@ function InvoicesPageInner() {
         activeFilterCount={list.activeFilterCount}
         onClearFilters={list.clearFilters}
         onRetry={list.refresh}
-        searchPlaceholder="Search invoice no…"
+        searchPlaceholder={t("fin.searchPlaceholder")}
         rowKey={(i) => i.id}
         filters={
           <TableFilter
             placeholder={t("fin.byStatus")} value={list.filters.status}
             onChange={(v) => list.setFilter("status", v)}
             options={[
-              { label: "Issued", value: "ISSUED" },
-              { label: "Partial", value: "PARTIAL" },
-              { label: "Paid", value: "PAID" },
-              { label: "Overdue", value: "OVERDUE" },
-              { label: "Cancelled", value: "CANCELLED" },
+              { label: t("inv.status.ISSUED"), value: "ISSUED" },
+              { label: t("inv.status.PARTIAL"), value: "PARTIAL" },
+              { label: t("inv.status.PAID"), value: "PAID" },
+              { label: t("inv.status.OVERDUE"), value: "OVERDUE" },
+              { label: t("inv.status.CANCELLED"), value: "CANCELLED" },
             ]}
           />
         }
@@ -214,7 +214,7 @@ function InvoicesPageInner() {
                 </Select>
               </Field>
               <Field label={t("fin.dueDate")} required><Input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} /></Field>
-              <Field label="Period"><Input value={period} onChange={(e) => setPeriod(e.target.value)} placeholder="2025-01" /></Field>
+              <Field label={t("fin.period")}><Input value={period} onChange={(e) => setPeriod(e.target.value)} placeholder="2025-01" /></Field>
             </div>
 
             {/* Line items */}
@@ -250,7 +250,7 @@ function InvoicesPageInner() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setCreateOpen(false)}>{t("common.cancel")}</Button>
-            <Button onClick={createInvoice} disabled={saving}>{saving ? "Saving..." : t("common.save")}</Button>
+            <Button onClick={createInvoice} disabled={saving}>{saving ? t("common.saving") : t("common.save")}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -273,18 +273,18 @@ function InvoicesPageInner() {
                 </SelectContent>
               </Select>
             </Field>
-            <Field label="Reference / Txn ID"><Input value={payRef} onChange={(e) => setPayRef(e.target.value)} placeholder="e.g. bKash TrxID" /></Field>
+            <Field label={t("fin.referenceTxn")}><Input value={payRef} onChange={(e) => setPayRef(e.target.value)} placeholder="e.g. bKash TrxID" /></Field>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setPayFor(null)}>{t("common.cancel")}</Button>
-            <Button onClick={recordPayment} disabled={payLoading}>{payLoading ? "Saving..." : t("fin.recordPayment")}</Button>
+            <Button onClick={recordPayment} disabled={payLoading}>{payLoading ? t("common.saving") : t("fin.recordPayment")}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       <ConfirmDialog
         open={!!deleting} onOpenChange={(o) => !o && setDeleting(null)}
-        title="Delete invoice?" description={`This permanently removes ${deleting?.invoiceNo} and its payments.`} onConfirm={handleDelete}
+        title={t("fin.deleteTitle")} description={t("fin.deleteDescription")} onConfirm={handleDelete}
       />
     </div>
   );

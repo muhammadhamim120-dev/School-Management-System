@@ -52,6 +52,7 @@ export function TeacherForm({ open, onOpenChange, teacher, campuses = [], onSave
         salary: teacher?.salary ?? 0,
         status: teacher?.status ?? "ACTIVE",
         campusId: teacher?.campusId ?? "",
+        shift: (teacher?.shift as TeacherInput["shift"]) ?? undefined,
       });
     }
   }, [open, teacher, reset]);
@@ -60,11 +61,11 @@ export function TeacherForm({ open, onOpenChange, teacher, campuses = [], onSave
     try {
       if (isEdit && teacher) await teachersApi.update(teacher.id, values);
       else await teachersApi.create(values);
-      toast({ variant: "success", title: isEdit ? "Teacher updated" : "Teacher created" });
+      toast({ variant: "success", title: isEdit ? t("toast.teacherUpdated") : t("toast.teacherCreated") });
       onOpenChange(false);
       onSaved();
     } catch (e) {
-      toast({ variant: "destructive", title: "Error", description: (e as Error).message });
+      toast({ variant: "destructive", title: t("common.error"), description: (e as Error).message });
     }
   };
 
@@ -72,7 +73,7 @@ export function TeacherForm({ open, onOpenChange, teacher, campuses = [], onSave
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle>{isEdit ? "Edit Teacher" : "Add Teacher"}</DialogTitle>
+          <DialogTitle>{isEdit ? t("form.editTeacher") : t("form.addTeacher")}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit(onSubmit)} className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Field label={t("field.teacherId")} error={errors.teacherId?.message} required>
@@ -82,13 +83,13 @@ export function TeacherForm({ open, onOpenChange, teacher, campuses = [], onSave
             <Input {...register("fullName")} />
           </Field>
           <Field label={t("field.department")} error={errors.department?.message}>
-            <Input {...register("department")} placeholder="e.g. Science" />
+            <Input {...register("department")} placeholder={t("placeholder.departmentExample")} />
           </Field>
           <Field label={t("field.subject")} error={errors.subject?.message}>
-            <Input {...register("subject")} placeholder="e.g. Physics" />
+            <Input {...register("subject")} placeholder={t("placeholder.subjectExample")} />
           </Field>
           <Field label={t("field.qualification")} error={errors.qualification?.message}>
-            <Input {...register("qualification")} placeholder="e.g. M.Sc, B.Ed" />
+            <Input {...register("qualification")} placeholder={t("placeholder.qualificationExample")} />
           </Field>
           <Field label={t("field.experience")} error={errors.experience?.message}>
             <Input type="number" min={0} {...register("experience")} />
@@ -117,22 +118,33 @@ export function TeacherForm({ open, onOpenChange, teacher, campuses = [], onSave
           </Field>
           <Field label={t("field.campus")} error={errors.campusId?.message}>
             <Select value={watch("campusId") || ""} onValueChange={(v) => setValue("campusId", v)}>
-              <SelectTrigger><SelectValue placeholder="Select campus" /></SelectTrigger>
+              <SelectTrigger><SelectValue placeholder={t("placeholder.selectCampus")} /></SelectTrigger>
               <SelectContent>
                 {campuses.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
               </SelectContent>
             </Select>
           </Field>
+          <Field label={t("field.shift")} error={errors.shift?.message}>
+            <Select value={watch("shift") ?? "none"} onValueChange={(v) => setValue("shift", v === "none" ? undefined : (v as TeacherInput["shift"]))}>
+              <SelectTrigger><SelectValue placeholder={t("placeholder.selectShift")} /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">—</SelectItem>
+                <SelectItem value="MORNING">{t("shift.MORNING")}</SelectItem>
+                <SelectItem value="DAY">{t("shift.DAY")}</SelectItem>
+                <SelectItem value="EVENING">{t("shift.EVENING")}</SelectItem>
+              </SelectContent>
+            </Select>
+          </Field>
           <Field label={t("field.photoUrl")} error={errors.photo?.message}>
-            <Input {...register("photo")} placeholder="https://..." />
+            <Input {...register("photo")} placeholder={t("placeholder.photoUrl")} />
           </Field>
           <Field label={t("field.address")} error={errors.address?.message} className="sm:col-span-2">
             <Textarea {...register("address")} />
           </Field>
           <DialogFooter className="sm:col-span-2">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>{t("common.cancel")}</Button>
             <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? "Saving..." : isEdit ? "Update" : "Create"}
+              {isSubmitting ? t("common.saving") : isEdit ? t("common.update") : t("common.create")}
             </Button>
           </DialogFooter>
         </form>

@@ -20,7 +20,7 @@ export default function LoginPage() {
   const { toast } = useToast();
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<LoginValues>({
     resolver: zodResolver(loginSchema),
-    defaultValues: { email: "admin@greenwood.edu", password: "" },
+    defaultValues: { email: "", password: "", schoolSlug: "" },
   });
 
   const onSubmit = async (values: LoginValues) => {
@@ -42,6 +42,9 @@ export default function LoginPage() {
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          <Field label="School" error={errors.schoolSlug?.message}>
+            <Input placeholder="School slug (e.g. greenwood)" {...register("schoolSlug")} />
+          </Field>
           <Field label="Email" error={errors.email?.message} required>
             <Input type="email" placeholder="you@school.edu" {...register("email")} />
           </Field>
@@ -56,9 +59,11 @@ export default function LoginPage() {
           <Button type="submit" className="press w-full" disabled={isSubmitting}>
             {isSubmitting ? "Signing in..." : "Sign in"}
           </Button>
-          <p className="rounded-xl bg-muted/70 p-3 text-center text-xs text-muted-foreground">
-            Demo credentials: <strong>admin@greenwood.edu</strong> / <strong>admin123</strong>
-          </p>
+          <div className="text-center">
+            <Link href="/super-admin/login" className="text-xs text-muted-foreground hover:text-foreground">
+              Super Admin Login
+            </Link>
+          </div>
         </form>
       </CardContent>
     </Card>

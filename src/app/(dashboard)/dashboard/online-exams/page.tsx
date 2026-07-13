@@ -1,0 +1,507 @@
+"use client";
+import * as React from "react";
+import { Plus, Pencil, Trash2, Banknote, ClipboardList, Trophy, Link2, Unlink, Play, GraduationCap } from "lucide-react";
+import Link from "next/link";
+import { PageHeader } from "@/components/dashboard/page-header";
+import { DataTable, type Column } from "@/components/dashboard/data-table";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Switch } from "@/components/ui/switch";
+import { Field } from "@/components/form-field";
+import { ConfirmDialog } from "@/components/dashboard/confirm-dialog";
+import { useToast } from "@/hooks/use-toast";
+import { useI18n } from "@/components/i18n-provider";
+import { request } from "@/services/api-client";
+import { questionsApi, onlineExamsApi, classesApi, subjectsApi, teachersApi } from "@/services/resources";
+import { formatDate } from "@/lib/utils";
+import type { Class, Subject, Teacher, QuestionWithRelations, OnlineExamWithRelations } from "@/types";
+
+const STATUS_LABEL: Record<string, string> = { DRAFT: "oexam.draft", SCHEDULED: "oexam.scheduled", LIVE: "oexam.live", COMPLETED: "oexam.completed" };
+
+export default function OnlineExamsPage() {
+  const { t } = useI18n();
+  const [tab, setTab] = React.useState("bank");
+  return (
+    <div>
+      <PageHeader title={t("oexam.title")} description={t("oexam.desc")} />
+      <Tabs value={tab} onValueChange={setTab}>
+        <TabsList>
+          <TabsTrigger value="bank"><ClipboardList className="h-3.5 w-3.5" /> {t("oexam.questionBank")}</TabsTrigger>
+          <TabsTrigger value="exams"><Banknote className="h-3.5 w-3.5" /> {t("oexam.exams")}</TabsTrigger>
+          <TabsTrigger value="results"><Trophy className="h-3.5 w-3.5" /> {t("oexam.results")}</TabsTrigger>
+        </TabsList>
+        <TabsContent value="bank" className="mt-4"><QuestionBankTab /></TabsContent>
+        <TabsContent value="exams" className="mt-4"><ExamsTab /></TabsContent>
+        <TabsContent value="results" className="mt-4"><ResultsTab /></TabsContent>
+      </Tabs>
+    </div>
+  );
+}
+
+/* ----------------------------- Question Bank ----------------------------- */
+function QuestionBankTab() {
+  const { t } = useI18n();
+  const { toast } = useToast();
+  const [items, setItems] = React.useState<QuestionWithRelations[]>([]);
+  const [loading, setLoading] = React.useState(true);
+  const [open, setOpen] = React.useState(false);
+  const [editing, setEditing] = React.useState<QuestionWithRelations | null>(null);
+  const [deleting, setDeleting] = React.useState<QuestionWithRelations | null>(null);
+  const [subjects, setSubjects] = React.useState<Subject[]>([]);
+  const [classes, setClasses] = React.useState<Class[]>([]);
+
+  const load = React.useCallback(async () => {
+    setLoading(true);
+    try { const d = await questionsApi.list({ limit: 100 }); setItems(d.items); } catch { } finally { setLoading(false); }
+  }, []);
+  React.useEffect(() => { load(); subjectsApi.list({ limit: 200 }).then((d) => setSubjects(d.items)).catch(() => {}); classesApi.list({ limit: 100 }).then((d) => setClasses(d.items)).catch(() => {}); }, [load]);
+
+  const [type, setType] = React.useState<"MCQ" | "WRITTEN">("MCQ");
+  const [text, setText] = React.useState("");
+  const [optionsText, setOptionsText] = React.useState("");
+  const [correct, setCorrect] = React.useState("");
+  const [modelAnswer, setModelAnswer] = React.useState("");
+  const [marks, setMarks] = React.useState("1");
+  const [explanation, setExplanation] = React.useState("");
+  const [tags, setTags] = React.useState("");
+  const [subjectId, setSubjectId] = React.useState("");
+  const [classId, setClassId] = React.useState("");
+  const [saving, setSaving] = React.useState(false);
+
+  const openForm = (q?: QuestionWithRelations) => {
+    setEditing(q ?? null);
+    setType((q?.type as "MCQ" | "WRITTEN") ?? "MCQ");
+    setText(q?.text ?? "");
+    const opts = (q?.options as string[] | null | undefined) ?? [];
+    setOptionsText(opts.join("\n"));
+    setCorrect(q?.correctOption != null ? String(q.correctOption) : "");
+    setModelAnswer(q?.modelAnswer ?? "");
+    setMarks(String(q?.marks ?? 1));
+    setExplanation(q?.explanation ?? "");
+    setTags(q?.tags ?? "");
+    setSubjectId(q?.subjectId ?? "");
+    setClassId(q?.classId ?? "");
+    setOpen(true);
+  };
+
+  const save = async () => {
+    if (!text.trim()) { toast({ variant: "destructive", title: t("oexam.questionText") }); return; }
+    const opts = optionsText.split("\n").map((s) => s.trim()).filter(Boolean);
+    if (type === "MCQ" && (opts.length < 2 || correct === "")) { toast({ variant: "destructive", title: t("oexam.correctOption") }); return; }
+    const payload = {
+      type, text, marks: Number(marks) || 1, explanation, tags, modelAnswer: type === "WRITTEN" ? modelAnswer : undefined,
+      subjectId: subjectId || undefined, classId: classId || undefined,
+      options: type === "MCQ" ? opts : [],
+      correctOption: type === "MCQ" ? Number(correct) : undefined,
+    };
+    setSaving(true);
+    try {
+      if (editing) await questionsApi.update(editing.id, payload);
+      else await questionsApi.create(payload);
+      toast({ variant: "success", title: t("common.save") });
+      setOpen(false); load();
+    } catch (e) { toast({ variant: "destructive", title: t("common.error"), description: (e as Error).message }); }
+    finally { setSaving(false); }
+  };
+
+  const del = async () => {
+    if (!deleting) return;
+    try { await questionsApi.remove(deleting.id); toast({ variant: "success", title: t("common.delete") }); setDeleting(null); load(); }
+    catch (e) { toast({ variant: "destructive", title: t("common.error"), description: (e as Error).message }); }
+  };
+
+  const cols: Column<QuestionWithRelations>[] = [
+    { key: "text", header: t("oexam.questionText"), render: (q) => (
+      <div className="space-y-0.5">
+        <div className="max-w-md truncate font-medium">{q.text}</div>
+        {q.tags && <div className="text-xs text-muted-foreground">{q.tags}</div>}
+      </div>
+    ) },
+    { key: "type", header: t("oexam.questionType"), render: (q) => <Badge variant={q.type === "MCQ" ? "default" : "secondary"}>{q.type === "MCQ" ? t("oexam.mcq") : t("oexam.written")}</Badge> },
+    { key: "subject", header: t("page.subjects.title"), render: (q) => q.subject?.name ?? "—" },
+    { key: "marks", header: t("oexam.marks"), render: (q) => q.marks },
+    { key: "actions", header: "", className: "text-right", render: (q) => (
+      <div className="flex justify-end gap-1">
+        <Button variant="ghost" size="icon" onClick={() => openForm(q)}><Pencil className="h-4 w-4" /></Button>
+        <Button variant="ghost" size="icon" className="text-destructive" onClick={() => setDeleting(q)}><Trash2 className="h-4 w-4" /></Button>
+      </div>
+    ) },
+  ];
+
+  const optionLines = optionsText.split("\n").map((s) => s.trim()).filter(Boolean);
+
+  return (
+    <div>
+      <div className="mb-3 flex justify-end"><Button onClick={() => openForm()}><Plus className="h-4 w-4" /> {t("oexam.newQuestion")}</Button></div>
+      <DataTable columns={cols} rows={items} loading={loading} total={items.length} page={1} totalPages={1} search="" onSearch={() => {}} onPage={() => {}} rowKey={(q) => q.id} />
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+          <DialogHeader><DialogTitle>{editing ? t("oexam.editQuestion") : t("oexam.newQuestion")}</DialogTitle></DialogHeader>
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-3">
+              <Field label={t("oexam.questionType")}>
+                <Select value={type} onValueChange={(v) => setType(v as "MCQ" | "WRITTEN")}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent><SelectItem value="MCQ">{t("oexam.mcq")}</SelectItem><SelectItem value="WRITTEN">{t("oexam.written")}</SelectItem></SelectContent>
+                </Select>
+              </Field>
+              <Field label={t("oexam.marks")}><Input type="number" value={marks} onChange={(e) => setMarks(e.target.value)} /></Field>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label={t("page.subjects.title")}>
+                <Select value={subjectId} onValueChange={setSubjectId}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent><SelectItem value="NONE">—</SelectItem>{subjects.map((s) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent>
+                </Select>
+              </Field>
+              <Field label={t("col.class")}>
+                <Select value={classId} onValueChange={setClassId}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent><SelectItem value="NONE">—</SelectItem>{classes.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
+                </Select>
+              </Field>
+            </div>
+            <Field label={t("oexam.questionText")} required><Textarea rows={2} value={text} onChange={(e) => setText(e.target.value)} /></Field>
+            {type === "MCQ" ? (
+              <>
+                <Field label={t("oexam.options")} required>
+                  <Textarea rows={4} value={optionsText} onChange={(e) => setOptionsText(e.target.value)} placeholder={"Dhaka\nChittagong\nKhulna\nRajshahi"} />
+                </Field>
+                <Field label={t("oexam.correctOption")} required>
+                  <Select value={correct} onValueChange={setCorrect}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>{optionLines.map((o, i) => <SelectItem key={i} value={String(i)}>{String.fromCharCode(65 + i)}. {o}</SelectItem>)}</SelectContent>
+                  </Select>
+                </Field>
+              </>
+            ) : (
+              <Field label={t("oexam.modelAnswer")}><Textarea rows={2} value={modelAnswer} onChange={(e) => setModelAnswer(e.target.value)} /></Field>
+            )}
+            <Field label={t("oexam.explanation")}><Input value={explanation} onChange={(e) => setExplanation(e.target.value)} /></Field>
+            <Field label={t("oexam.tags")}><Input value={tags} onChange={(e) => setTags(e.target.value)} placeholder="algebra, fractions" /></Field>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOpen(false)}>{t("common.cancel")}</Button>
+            <Button onClick={save} disabled={saving}>{saving ? "…" : t("common.save")}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      <ConfirmDialog open={!!deleting} onOpenChange={(o) => !o && setDeleting(null)} title={t("common.delete")} description={deleting?.text ?? ""} onConfirm={del} />
+    </div>
+  );
+}
+
+/* -------------------------------- Exams ---------------------------------- */
+function ExamsTab() {
+  const { t } = useI18n();
+  const { toast } = useToast();
+  const [items, setItems] = React.useState<OnlineExamWithRelations[]>([]);
+  const [loading, setLoading] = React.useState(true);
+  const [open, setOpen] = React.useState(false);
+  const [editing, setEditing] = React.useState<OnlineExamWithRelations | null>(null);
+  const [deleting, setDeleting] = React.useState<OnlineExamWithRelations | null>(null);
+  const [detail, setDetail] = React.useState<OnlineExamWithRelations | null>(null);
+
+  const [classes, setClasses] = React.useState<Class[]>([]);
+  const [subjects, setSubjects] = React.useState<Subject[]>([]);
+  const [teachers, setTeachers] = React.useState<Teacher[]>([]);
+
+  const load = React.useCallback(async () => {
+    setLoading(true);
+    try { const d = await onlineExamsApi.list({ limit: 100 }); setItems(d.items); } catch { } finally { setLoading(false); }
+  }, []);
+  React.useEffect(() => {
+    load();
+    classesApi.list({ limit: 100 }).then((d) => setClasses(d.items)).catch(() => {});
+    subjectsApi.list({ limit: 200 }).then((d) => setSubjects(d.items)).catch(() => {});
+    teachersApi.list({ limit: 200 }).then((d) => setTeachers(d.items)).catch(() => {});
+  }, [load]);
+
+  // form state
+  const [f, setF] = React.useState<Record<string, string>>({});
+  const [shuffle, setShuffle] = React.useState(false);
+  const set = (k: string, v: string) => setF((p) => ({ ...p, [k]: v }));
+
+  const openForm = (e?: OnlineExamWithRelations) => {
+    setEditing(e ?? null);
+    setF({
+      title: e?.title ?? "", classId: e?.classId ?? "", sectionId: e?.sectionId ?? "", subjectId: e?.subjectId ?? "", teacherId: e?.teacherId ?? "",
+      description: e?.description ?? "",
+      startTime: e?.startTime ? new Date(e.startTime).toISOString().slice(0, 16) : "",
+      endTime: e?.endTime ? new Date(e.endTime).toISOString().slice(0, 16) : "",
+      durationMinutes: String(e?.durationMinutes ?? 60), totalMarks: String(e?.totalMarks ?? 100),
+      passMark: e?.passMark != null ? String(e.passMark) : "", negativeMark: String(e?.negativeMark ?? 0),
+      status: e?.status ?? "DRAFT",
+    });
+    setShuffle(e?.shuffleQuestions ?? false);
+    setOpen(true);
+  };
+
+  const save = async () => {
+    if (!f.title?.trim()) { toast({ variant: "destructive", title: t("oexam.title") }); return; }
+    if (!f.startTime || !f.endTime) { toast({ variant: "destructive", title: t("oexam.startTime") }); return; }
+    const payload = {
+      title: f.title, description: f.description || undefined,
+      classId: f.classId || undefined, sectionId: f.sectionId || undefined, subjectId: f.subjectId || undefined, teacherId: f.teacherId || undefined,
+      startTime: new Date(f.startTime), endTime: new Date(f.endTime),
+      durationMinutes: Number(f.durationMinutes) || 60, totalMarks: Number(f.totalMarks) || 100,
+      passMark: f.passMark ? Number(f.passMark) : undefined, negativeMark: Number(f.negativeMark) || 0,
+      shuffleQuestions: shuffle, status: (f.status as "DRAFT" | "SCHEDULED" | "LIVE" | "COMPLETED") || "DRAFT",
+    };
+    try {
+      if (editing) await onlineExamsApi.update(editing.id, payload);
+      else await onlineExamsApi.create(payload);
+      toast({ variant: "success", title: t("common.save") }); setOpen(false); load();
+    } catch (e) { toast({ variant: "destructive", title: t("common.error"), description: (e as Error).message }); }
+  };
+
+  const del = async () => { if (!deleting) return; try { await onlineExamsApi.remove(deleting.id); toast({ variant: "success", title: t("common.delete") }); setDeleting(null); load(); } catch (e) { toast({ variant: "destructive", title: t("common.error"), description: (e as Error).message }); } };
+  const publish = async (e: OnlineExamWithRelations) => { try { await onlineExamsApi.update(e.id, { status: "LIVE" }); toast({ variant: "success", title: t("oexam.publish") }); load(); } catch (ex) { toast({ variant: "destructive", title: t("common.error"), description: (ex as Error).message }); } };
+
+  const cols: Column<OnlineExamWithRelations>[] = [
+    { key: "title", header: t("oexam.title"), render: (e) => <span className="font-medium">{e.title}</span> },
+    { key: "class", header: t("col.class"), render: (e) => e.class?.name ?? "—" },
+    { key: "status", header: t("oexam.status"), render: (e) => <Badge variant={e.status === "LIVE" ? "default" : "secondary"}>{t(STATUS_LABEL[e.status] as never)}</Badge> },
+    { key: "questions", header: t("oexam.questionBank"), render: (e) => e._count?.questions ?? 0 },
+    { key: "attempts", header: t("oexam.results"), render: (e) => e._count?.attempts ?? 0 },
+    { key: "dates", header: t("oexam.startTime"), render: (e) => <span className="text-xs">{formatDate(e.startTime)} → {formatDate(e.endTime)}</span> },
+    { key: "actions", header: "", className: "text-right", render: (e) => (
+      <div className="flex justify-end gap-1">
+        <Link href={`/dashboard/online-exams/${e.id}/take`}><Button variant="ghost" size="icon" title={t("oexam.takeExam")}><Play className="h-4 w-4" /></Button></Link>
+        <Button variant="ghost" size="icon" title={t("oexam.addQuestions")} onClick={() => setDetail(e)}><Link2 className="h-4 w-4" /></Button>
+        {e.status !== "LIVE" && <Button variant="ghost" size="icon" title={t("oexam.publish")} onClick={() => publish(e)}><GraduationCap className="h-4 w-4" /></Button>}
+        <Button variant="ghost" size="icon" onClick={() => openForm(e)}><Pencil className="h-4 w-4" /></Button>
+        <Button variant="ghost" size="icon" className="text-destructive" onClick={() => setDeleting(e)}><Trash2 className="h-4 w-4" /></Button>
+      </div>
+    ) },
+  ];
+
+  return (
+    <div>
+      <div className="mb-3 flex justify-end"><Button onClick={() => openForm()}><Plus className="h-4 w-4" /> {t("oexam.newExam")}</Button></div>
+      <DataTable columns={cols} rows={items} loading={loading} total={items.length} page={1} totalPages={1} search="" onSearch={() => {}} onPage={() => {}} rowKey={(e) => e.id} />
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+          <DialogHeader><DialogTitle>{editing ? t("oexam.editExam") : t("oexam.newExam")}</DialogTitle></DialogHeader>
+          <div className="space-y-4">
+            <Field label={t("oexam.title")} required><Input value={f.title ?? ""} onChange={(e) => set("title", e.target.value)} /></Field>
+            <div className="grid grid-cols-3 gap-3">
+              <Field label={t("col.class")}><Select value={f.classId ?? ""} onValueChange={(v) => set("classId", v === "NONE" ? "" : v)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="NONE">—</SelectItem>{classes.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent></Select></Field>
+              <Field label={t("page.subjects.title")}><Select value={f.subjectId ?? ""} onValueChange={(v) => set("subjectId", v === "NONE" ? "" : v)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="NONE">—</SelectItem>{subjects.map((s) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent></Select></Field>
+              <Field label={t("nav.teachers")}><Select value={f.teacherId ?? ""} onValueChange={(v) => set("teacherId", v === "NONE" ? "" : v)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="NONE">—</SelectItem>{teachers.map((tc) => <SelectItem key={tc.id} value={tc.id}>{tc.fullName}</SelectItem>)}</SelectContent></Select></Field>
+            </div>
+            <Field label={t("hw.details")}><Textarea rows={2} value={f.description ?? ""} onChange={(e) => set("description", e.target.value)} /></Field>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label={t("oexam.startTime")} required><Input type="datetime-local" value={f.startTime ?? ""} onChange={(e) => set("startTime", e.target.value)} /></Field>
+              <Field label={t("oexam.endTime")} required><Input type="datetime-local" value={f.endTime ?? ""} onChange={(e) => set("endTime", e.target.value)} /></Field>
+            </div>
+            <div className="grid grid-cols-4 gap-3">
+              <Field label={t("oexam.duration")}><Input type="number" value={f.durationMinutes ?? ""} onChange={(e) => set("durationMinutes", e.target.value)} /></Field>
+              <Field label={t("oexam.totalMarks")}><Input type="number" value={f.totalMarks ?? ""} onChange={(e) => set("totalMarks", e.target.value)} /></Field>
+              <Field label={t("oexam.passMark")}><Input type="number" value={f.passMark ?? ""} onChange={(e) => set("passMark", e.target.value)} /></Field>
+              <Field label={t("oexam.negativeMark")}><Input type="number" value={f.negativeMark ?? ""} onChange={(e) => set("negativeMark", e.target.value)} /></Field>
+            </div>
+            <label className="flex items-center gap-2 text-sm"><Switch checked={shuffle} onCheckedChange={setShuffle} /> {t("oexam.shuffle")}</label>
+          </div>
+          <DialogFooter><Button variant="outline" onClick={() => setOpen(false)}>{t("common.cancel")}</Button><Button onClick={save}>{t("common.save")}</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <AttachQuestionsDialog exam={detail} onClose={() => setDetail(null)} />
+      <ConfirmDialog open={!!deleting} onOpenChange={(o) => !o && setDeleting(null)} title={t("common.delete")} description={deleting?.title ?? ""} onConfirm={del} />
+    </div>
+  );
+}
+
+function AttachQuestionsDialog({ exam, onClose }: { exam: OnlineExamWithRelations | null; onClose: () => void }) {
+  const { t } = useI18n();
+  const { toast } = useToast();
+  const [bank, setBank] = React.useState<QuestionWithRelations[]>([]);
+  const [attached, setAttached] = React.useState<{ id: string; question: { text: string; type: string }; marks: number }[]>([]);
+  const [selected, setSelected] = React.useState<Record<string, boolean>>({});
+  const [saving, setSaving] = React.useState(false);
+
+  React.useEffect(() => {
+    if (!exam) return;
+    questionsApi.list({ limit: 200 }).then((d) => setBank(d.items)).catch(() => {});
+    request<{ questions: { id: string; question: { text: string; type: string }; marks: number }[] }>(`/api/online-exams/${exam.id}`)
+      .then((d: any) => setAttached(d.questions ?? [])).catch(() => setAttached([]));
+  }, [exam]);
+
+  const attach = async () => {
+    const items = Object.entries(selected).filter(([, v]) => v).map(([questionId]) => ({ questionId, marks: 1 }));
+    if (items.length === 0) return;
+    setSaving(true);
+    try {
+      await request(`/api/online-exams/${exam!.id}/questions`, { method: "POST", body: JSON.stringify({ items }) });
+      toast({ variant: "success", title: t("oexam.addQuestions") });
+      setSelected({});
+      const d: any = await request(`/api/online-exams/${exam!.id}`);
+      setAttached(d.questions ?? []);
+    } catch (e) { toast({ variant: "destructive", title: t("common.error"), description: (e as Error).message }); }
+    finally { setSaving(false); }
+  };
+
+  const detach = async (questionId: string) => {
+    try { await request(`/api/online-exams/${exam!.id}/questions?questionId=${questionId}`, { method: "DELETE" }); const d: any = await request(`/api/online-exams/${exam!.id}`); setAttached(d.questions ?? []); }
+    catch (e) { toast({ variant: "destructive", title: t("common.error"), description: (e as Error).message }); }
+  };
+
+  const attachedIds = new Set(attached.map((a) => a.id));
+
+  return (
+    <Dialog open={!!exam} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+        <DialogHeader><DialogTitle>{t("oexam.attachQuestions")} — {exam?.title}</DialogTitle></DialogHeader>
+        <div className="space-y-4">
+          <div>
+            <div className="mb-1 text-sm font-medium">{t("oexam.attachQuestions")}</div>
+            <div className="max-h-52 space-y-1 overflow-y-auto rounded-md border p-2">
+              {bank.length === 0 && <div className="p-2 text-sm text-muted-foreground">{t("oexam.noQuestions")}</div>}
+              {bank.map((q) => (
+                <label key={q.id} className="flex items-center gap-2 rounded p-1 text-sm hover:bg-accent">
+                  <input type="checkbox" disabled={attachedIds.has(q.id)} checked={!!selected[q.id]} onChange={(e) => setSelected((p) => ({ ...p, [q.id]: e.target.checked }))} />
+                  <Badge variant={q.type === "MCQ" ? "default" : "secondary"} className="text-[10px]">{q.type === "MCQ" ? t("oexam.mcq") : t("oexam.written")}</Badge>
+                  <span className="flex-1 truncate">{q.text}</span>
+                  {attachedIds.has(q.id) && <span className="text-xs text-muted-foreground">✓</span>}
+                </label>
+              ))}
+            </div>
+            <Button className="mt-2" size="sm" onClick={attach} disabled={saving}>{t("oexam.addQuestions")}</Button>
+          </div>
+          <div>
+            <div className="mb-1 text-sm font-medium">{t("oexam.questionsAttached")} ({attached.length})</div>
+            <div className="space-y-1">
+              {attached.map((a) => (
+                <div key={a.id} className="flex items-center gap-2 rounded-md border p-2 text-sm">
+                  <Badge variant={a.question.type === "MCQ" ? "default" : "secondary"} className="text-[10px]">{a.question.type === "MCQ" ? t("oexam.mcq") : t("oexam.written")}</Badge>
+                  <span className="flex-1 truncate">{a.question.text}</span>
+                  <span className="text-xs text-muted-foreground">{a.marks} {t("oexam.marks")}</span>
+                  <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => detach(a.id)}><Unlink className="h-3.5 w-3.5" /></Button>
+                </div>
+              ))}
+              {attached.length === 0 && <div className="p-2 text-sm text-muted-foreground">{t("oexam.noQuestions")}</div>}
+            </div>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/* ----------------------------- Results / Ranking ----------------------------- */
+type RankItem = { rank: number; attemptId: string; studentId: string; name: string; studentCode: string; className: string | null; status: string; score: number; percentage: number; grade: string; passed: boolean | null; submittedAt: string };
+function ResultsTab() {
+  const { t } = useI18n();
+  const { toast } = useToast();
+  const [exams, setExams] = React.useState<OnlineExamWithRelations[]>([]);
+  const [examId, setExamId] = React.useState("");
+  const [data, setData] = React.useState<{ items: RankItem[]; pendingGrading: number; totalMarks: number; passMark: number | null } | null>(null);
+  const [loading, setLoading] = React.useState(false);
+  const [gradeTarget, setGradeTarget] = React.useState<{ attemptId: string; name: string } | null>(null);
+
+  React.useEffect(() => { onlineExamsApi.list({ limit: 100 }).then((d) => setExams(d.items)).catch(() => {}); }, []);
+  const load = React.useCallback(async () => {
+    if (!examId) return;
+    setLoading(true);
+    try { const d: any = await request(`/api/online-exams/${examId}/ranking`); setData(d); }
+    catch (e) { toast({ variant: "destructive", title: t("common.error"), description: (e as Error).message }); }
+    finally { setLoading(false); }
+  }, [examId, t]);
+  React.useEffect(() => { if (examId) load(); }, [examId, load]);
+
+  const cols: Column<RankItem>[] = [
+    { key: "rank", header: t("oexam.rank"), render: (r) => <Badge variant={r.rank <= 3 ? "default" : "secondary"}>{r.rank}</Badge> },
+    { key: "name", header: t("nav.students"), render: (r) => <div><div className="font-medium">{r.name}</div><div className="text-xs text-muted-foreground">{r.studentCode}{r.className ? ` · ${r.className}` : ""}</div></div> },
+    { key: "score", header: t("oexam.score"), render: (r) => `${r.score} / ${data?.totalMarks ?? "?"}` },
+    { key: "percentage", header: "%", render: (r) => `${r.percentage.toFixed(1)}%` },
+    { key: "grade", header: t("oexam.autoResult"), render: (r) => <Badge>{r.grade}</Badge> },
+    { key: "status", header: t("oexam.status"), render: (r) => r.status === "AUTO_SUBMITTED" ? t("oexam.autoSubmit") : t("oexam.submittedAt") },
+    { key: "actions", header: "", className: "text-right", render: (r) => <Button variant="ghost" size="sm" onClick={() => setGradeTarget({ attemptId: r.attemptId, name: r.name })}><Pencil className="h-3.5 w-3.5" /> {t("oexam.gradeWritten")}</Button> },
+  ];
+
+  return (
+    <div className="space-y-3">
+      <Select value={examId} onValueChange={setExamId}>
+        <SelectTrigger className="w-[300px]"><SelectValue placeholder={t("oexam.exams")} /></SelectTrigger>
+        <SelectContent>{exams.map((e) => <SelectItem key={e.id} value={e.id}>{e.title}</SelectItem>)}</SelectContent>
+      </Select>
+      {data && data.pendingGrading > 0 && <div className="text-sm text-amber-600">{t("oexam.pendingGrade")}: {data.pendingGrading}</div>}
+      {examId && <DataTable columns={cols} rows={data?.items ?? []} loading={loading} total={data?.items.length ?? 0} page={1} totalPages={1} search="" onSearch={() => {}} onPage={() => {}} rowKey={(r) => r.attemptId} />}
+      {examId && !loading && (data?.items.length ?? 0) === 0 && <div className="text-sm text-muted-foreground">{t("oexam.noAttempts")}</div>}
+      <GradeDialog target={gradeTarget} examId={examId} onClose={() => { setGradeTarget(null); load(); }} />
+    </div>
+  );
+}
+
+function GradeDialog({ target, examId, onClose }: { target: { attemptId: string; name: string } | null; examId: string; onClose: () => void }) {
+  const { t } = useI18n();
+  const { toast } = useToast();
+  const [data, setData] = React.useState<any>(null);
+  const [grades, setGrades] = React.useState<Record<string, string>>({});
+  const [saving, setSaving] = React.useState(false);
+
+  React.useEffect(() => {
+    if (!target) return;
+    request(`/api/online-exams/${examId}/attempts/${target.attemptId}`).then((d: any) => {
+      setData(d);
+      const g: Record<string, string> = {};
+      d.answers.forEach((a: any) => { g[a.answerId] = String(a.awardedMarks ?? 0); });
+      setGrades(g);
+    }).catch(() => {});
+  }, [target, examId]);
+
+  const save = async () => {
+    const arr = data.answers.filter((a: any) => a.type === "WRITTEN").map((a: any) => ({ answerId: a.answerId, awardedMarks: Number(grades[a.answerId] ?? 0) }));
+    setSaving(true);
+    try {
+      await request(`/api/online-exams/${examId}/grade`, { method: "POST", body: JSON.stringify({ grades: arr }) });
+      toast({ variant: "success", title: t("oexam.rankingUpdated") }); onClose();
+    } catch (e) { toast({ variant: "destructive", title: t("common.error"), description: (e as Error).message }); }
+    finally { setSaving(false); }
+  };
+
+  if (!target) return null;
+  return (
+    <Dialog open={!!target} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+        <DialogHeader><DialogTitle>{t("oexam.gradeWritten")} — {target.name}</DialogTitle></DialogHeader>
+        {data && (
+          <div className="space-y-3">
+            <div className="text-sm text-muted-foreground">{t("oexam.score")}: {data.score} / {data.totalMarks} · {data.grade}</div>
+            {data.answers.map((a: any) => (
+              <div key={a.answerId} className="rounded-lg border p-3">
+                <div className="mb-1 flex items-center gap-2">
+                  <Badge variant={a.type === "MCQ" ? "default" : "secondary"} className="text-[10px]">{a.type === "MCQ" ? t("oexam.mcq") : t("oexam.written")}</Badge>
+                  <span className="text-sm font-medium">{a.text}</span>
+                </div>
+                {a.type === "MCQ" ? (
+                  <div className="text-xs">
+                    {t("oexam.correct")}: {String.fromCharCode(65 + (a.correctOption ?? 0))} · {t("oexam.yourScore")}: {a.awardedMarks}
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <div className="rounded bg-muted/40 p-2 text-sm">{a.writtenAnswer || <span className="text-muted-foreground">—</span>}</div>
+                    {a.modelAnswer && <div className="text-xs text-muted-foreground">{t("oexam.modelAnswer")}: {a.modelAnswer}</div>}
+                    <div className="flex items-center gap-2">
+                      <Input type="number" min={0} max={a.maxMarks} value={grades[a.answerId] ?? "0"} onChange={(e) => setGrades((p) => ({ ...p, [a.answerId]: e.target.value }))} className="w-24" />
+                      <span className="text-xs text-muted-foreground">/ {a.maxMarks}</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+        <DialogFooter><Button onClick={save} disabled={saving}>{t("common.save")}</Button></DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}

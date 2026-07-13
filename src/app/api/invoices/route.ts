@@ -2,10 +2,12 @@ import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { ok, created, handleError, parsePagination } from "@/lib/api";
 import { invoiceSchema } from "@/lib/validations";
-import { auth } from "@/lib/auth";
 import { computeInvoiceTotals, deriveInvoiceStatus, nextInvoiceNo } from "@/lib/finance";
+import { tenantWhere } from "@/lib/tenant";
+import { withTenantContext } from "@/lib/api-helpers";
+import { getRequiredTenantId } from "@/lib/tenant-context";
 
-export async function GET(req: NextRequest) {
+export const GET = withTenantContext(async (req: NextRequest) => {
   try {
     const { page, limit, search, skip } = parsePagination(req.nextUrl.searchParams);
     const sp = req.nextUrl.searchParams;
@@ -16,7 +18,7 @@ export async function GET(req: NextRequest) {
     if (search) AND.push({ invoiceNo: { contains: search, mode: "insensitive" as const } });
     if (status) AND.push({ status });
     if (studentId) AND.push({ studentId });
-    const where = AND.length ? { AND } : {};
+    const where = tenantWhere(AND.length ? { AND } : {});
 
     const [items, total] = await Promise.all([
       prisma.invoice.findMany({
@@ -27,14 +29,14 @@ export async function GET(req: NextRequest) {
     ]);
     return ok({ items, total, page, limit, totalPages: Math.ceil(total / limit) });
   } catch (e) { return handleError(e); }
-}
+});
 
-export async function POST(req: NextRequest) {
+export const POST = withTenantContext(async (req: NextRequest) => {
   try {
-    const session = await auth(); if (!session) return handleError({ code: "P2025" });
     const data = invoiceSchema.parse(await req.json());
+    const schoolId = getRequiredTenantId();
     const { subtotal, discountTotal, total } = computeInvoiceTotals(data.items);
-    const count = await prisma.invoice.count();
+    const count = await prisma.invoice.count({ where: tenantWhere({}) });
     const invoiceNo = nextInvoiceNo(count + 1);
     const status = deriveInvoiceStatus({ total, paidTotal: 0, dueDate: data.dueDate, current: data.status });
 
@@ -47,6 +49,7 @@ export async function POST(req: NextRequest) {
         notes: data.notes,
         status,
         subtotal, discountTotal, total, paidTotal: 0,
+        schoolId,
         items: {
           create: data.items.map((it) => ({
             categoryId: it.categoryId || null,
@@ -60,4 +63,4 @@ export async function POST(req: NextRequest) {
     });
     return created(invoice);
   } catch (e) { return handleError(e); }
-}
+});

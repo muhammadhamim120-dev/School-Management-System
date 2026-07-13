@@ -7,7 +7,9 @@ import crypto from "crypto";
 const TTL_MS = 12 * 60 * 60 * 1000; // 12 hours
 
 function secret(): string {
-  return process.env.AUTH_SECRET || "dev-insecure-secret-change-me";
+  const s = process.env.AUTH_SECRET;
+  if (!s) throw new Error("AUTH_SECRET environment variable is required");
+  return s;
 }
 
 export function signPortalToken(studentId: string): string {

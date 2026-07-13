@@ -2,10 +2,11 @@ import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { ok, created, handleError } from "@/lib/api";
 import { resultSchema } from "@/lib/validations";
-import { auth } from "@/lib/auth";
 import { gradeForPercentage } from "@/lib/grading";
+import { tenantWhere } from "@/lib/tenant";
+import { withTenantContext } from "@/lib/api-helpers";
 
-export async function GET(req: NextRequest) {
+export const GET = withTenantContext(async (req: NextRequest) => {
   try {
     const examId = req.nextUrl.searchParams.get("examId") || undefined;
     const studentId = req.nextUrl.searchParams.get("studentId") || undefined;
@@ -18,11 +19,10 @@ export async function GET(req: NextRequest) {
     });
     return ok({ items, total: items.length, page: 1, limit: items.length, totalPages: 1 });
   } catch (e) { return handleError(e); }
-}
+});
 
-export async function POST(req: NextRequest) {
+export const POST = withTenantContext(async (req: NextRequest) => {
   try {
-    const session = await auth(); if (!session) return handleError({ code: "P2025" });
     const data = resultSchema.parse(await req.json());
     const grade = gradeForPercentage((data.marks / data.totalMarks) * 100);
     const result = await prisma.result.upsert({
@@ -33,4 +33,4 @@ export async function POST(req: NextRequest) {
     });
     return created(result);
   } catch (e) { return handleError(e); }
-}
+});

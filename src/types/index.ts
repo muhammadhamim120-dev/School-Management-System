@@ -15,6 +15,9 @@ import type {
   RiskAssessment, RiskLevel,
   PaymentTransaction, PaymentEvent,
   RoutineSlot, Homework, ParentMessage, LeaveRequest, WeekDay, MessageSender, LeaveStatus,
+  HomeworkSubmission, HomeworkSubmissionStatus,
+  Question, QuestionType, OnlineExam, OnlineExamStatus, OnlineExamQuestion,
+  ExamAttempt, AttemptStatus, ExamAnswer,
 } from "@prisma/client";
 
 export type {
@@ -33,6 +36,9 @@ export type {
   RiskAssessment, RiskLevel,
   PaymentTransaction, PaymentEvent,
   RoutineSlot, Homework, ParentMessage, LeaveRequest, WeekDay, MessageSender, LeaveStatus,
+  HomeworkSubmission, HomeworkSubmissionStatus,
+  Question, QuestionType, OnlineExam, OnlineExamStatus, OnlineExamQuestion,
+  ExamAttempt, AttemptStatus, ExamAnswer,
 };
 
 export type RiskAssessmentWithStudent = RiskAssessment & {
@@ -112,6 +118,43 @@ export type ResultWithRelations = Result & {
 };
 
 export type FeeWithStudent = Fee & { student?: Student };
+
+// ---------- Homework + Online Exam composite types ----------
+export type HomeworkWithRelations = Homework & {
+  class: Class | null;
+  section?: Section | null;
+  subject?: Subject | null;
+  teacher?: Teacher | null;
+  _count?: { submissions: number };
+};
+
+export type HomeworkSubmissionWithStudent = HomeworkSubmission & {
+  student: Student & { class?: Class | null; section?: Section | null };
+};
+
+export type QuestionWithRelations = Question & {
+  subject?: Subject | null;
+  teacher?: Teacher | null;
+  class?: Class | null;
+};
+
+export type OnlineExamWithRelations = OnlineExam & {
+  class?: Class | null;
+  section?: Section | null;
+  subject?: Subject | null;
+  teacher?: Teacher | null;
+  questions?: (OnlineExamQuestion & { question: Question })[];
+  _count?: { attempts: number; questions: number };
+};
+
+export type ExamAttemptWithRelations = ExamAttempt & {
+  student: Student & { class?: Class | null; section?: Section | null };
+  exam?: OnlineExam | null;
+};
+
+export type ExamAnswerWithQuestion = ExamAnswer & {
+  questionLink: OnlineExamQuestion & { question: Question };
+};
 
 export type ApiResponse<T> = {
   success: boolean;

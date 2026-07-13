@@ -1,7 +1,8 @@
 "use client";
 import * as React from "react";
 import { usePathname } from "next/navigation";
-import { Menu, Bell, LogOut, User, Search } from "lucide-react";
+import Link from "next/link";
+import { Menu, Bell, LogOut, User, Search, Settings, HelpCircle, Plus, Home } from "lucide-react";
 import { signOut } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -38,6 +39,8 @@ const breadcrumbKey: Record<string, MessageKey> = {
   "/dashboard/classes": "nav.classes",
   "/dashboard/subjects": "nav.subjects",
   "/dashboard/attendance": "nav.attendance",
+  "/dashboard/timetable": "nav.timetable",
+  "/dashboard/coaching": "nav.coaching",
   "/dashboard/exams": "nav.exams",
   "/dashboard/results": "nav.results",
   "/dashboard/board-registrations": "nav.boardRegistration",
@@ -61,56 +64,96 @@ export function Topbar({ onMenu, user, notifications = [] }: Props) {
   const { t } = useI18n();
   const href = usePageHref();
   const title = breadcrumbKey[href] ? t(breadcrumbKey[href]) : t("nav.dashboard");
+  const isDashboard = href === "/dashboard";
 
   return (
-    <header className="glass-subtle sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-border/60 bg-background/70 px-4 lg:px-6">
-      <Button variant="ghost" size="icon" className="lg:hidden" onClick={onMenu}>
+    <header className="glass-subtle sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-border/50 bg-background px-4 lg:px-6">
+      {/* Mobile menu */}
+      <Button variant="ghost" size="icon" className="lg:hidden h-9 w-9" onClick={onMenu}>
         <Menu className="h-5 w-5" />
       </Button>
 
-      {/* Breadcrumb / context */}
-      <div className="flex items-center gap-2 text-sm">
-        <span className="hidden text-muted-foreground sm:inline">Greenwood</span>
-        <span className="hidden text-muted-foreground/50 sm:inline">/</span>
-        <span className="font-medium">{title}</span>
-      </div>
+      {/* Breadcrumb */}
+      <nav className="flex items-center gap-1.5 text-sm">
+        <Link
+          href="/dashboard"
+          className="flex items-center gap-1 text-muted-foreground/50 hover:text-foreground transition-colors"
+        >
+          <Home className="h-3.5 w-3.5" />
+        </Link>
+        {!isDashboard && (
+          <>
+            <span className="text-muted-foreground/30">/</span>
+            <span className="font-semibold text-foreground">{title}</span>
+          </>
+        )}
+        {isDashboard && (
+          <span className="font-semibold text-foreground">{title}</span>
+        )}
+      </nav>
 
       <div className="flex-1" />
 
-      {/* Search affordance — opens the ⌘K command palette */}
+      {/* Search */}
       <button
         type="button"
         onClick={() => window.dispatchEvent(new Event("open-command-palette"))}
-        className="press hidden items-center gap-2 rounded-lg border border-border/60 bg-card/60 px-3 py-1.5 text-sm text-muted-foreground shadow-xs transition-colors hover:bg-accent md:flex"
+        className="press hidden items-center gap-2.5 rounded-xl border border-border/40 bg-muted/30 px-3.5 py-2 text-sm text-muted-foreground/60 shadow-xs transition-all duration-200 hover:bg-accent hover:border-border hover:text-foreground md:flex"
       >
-        <Search className="h-4 w-4" />
+        <Search className="h-3.5 w-3.5" />
         <span>Search…</span>
-        <kbd className="ml-3 rounded border border-border bg-muted px-1.5 py-0.5 font-sans text-[10px] font-medium text-muted-foreground">⌘K</kbd>
+        <kbd className="ml-3 rounded-md border border-border/60 bg-background px-1.5 py-0.5 font-sans text-[10px] font-medium text-muted-foreground/40">⌘K</kbd>
       </button>
 
+      {/* Quick actions */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="icon" className="relative">
-            <Bell className="h-5 w-5" />
+          <Button variant="ghost" size="icon" className="h-9 w-9 hidden sm:flex">
+            <Plus className="h-4 w-4" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-48">
+          <DropdownMenuItem asChild>
+            <Link href="/dashboard/students">Add Student</Link>
+          </DropdownMenuItem>
+          <DropdownMenuItem asChild>
+            <Link href="/dashboard/teachers">Add Teacher</Link>
+          </DropdownMenuItem>
+          <DropdownMenuItem asChild>
+            <Link href="/dashboard/notices">Post Notice</Link>
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      {/* Notifications */}
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" size="icon" className="relative h-9 w-9">
+            <Bell className="h-4 w-4" />
             {notifications.length > 0 && (
-              <span className="absolute right-1.5 top-1.5 flex h-2 w-2">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary/60" />
-                <span className="relative inline-flex h-2 w-2 rounded-full bg-primary" />
+              <span className="notification-badge">
+                {notifications.length > 9 ? "9+" : notifications.length}
               </span>
             )}
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-80">
           <DropdownMenuLabel className="flex items-center justify-between">
-            <span>Notifications</span>
-            <span className="text-xs font-normal text-muted-foreground">{notifications.length} new</span>
+            <span className="text-sm font-semibold">Notifications</span>
+            {notifications.length > 0 && (
+              <span className="text-xs font-medium text-primary">{notifications.length} new</span>
+            )}
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
           {notifications.length === 0 ? (
-            <div className="px-2 py-8 text-center text-sm text-muted-foreground">You&apos;re all caught up</div>
+            <div className="px-2 py-10 text-center">
+              <Bell className="mx-auto mb-2 h-8 w-8 text-muted-foreground/30" />
+              <p className="text-sm font-medium text-muted-foreground">You&apos;re all caught up</p>
+              <p className="text-xs text-muted-foreground/60 mt-1">No new notifications</p>
+            </div>
           ) : (
             notifications.slice(0, 6).map((n) => (
-              <DropdownMenuItem key={n.id} className="flex items-start gap-2.5 py-2.5">
+              <DropdownMenuItem key={n.id} className="flex items-start gap-2.5 py-2.5 cursor-pointer">
                 <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
                 <span className="text-sm font-medium leading-snug">{n.title}</span>
               </DropdownMenuItem>
@@ -122,22 +165,33 @@ export function Topbar({ onMenu, user, notifications = [] }: Props) {
       <LanguageToggle />
       <ThemeToggle />
 
+      {/* Profile menu */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <button className="flex items-center gap-2 rounded-full outline-none ring-offset-background focus-visible:ring-2 focus-visible:ring-ring/50">
-            <Avatar className="h-8 w-8">
+          <button className="flex items-center gap-2 rounded-full outline-none ring-offset-background focus-visible:ring-2 focus-visible:ring-ring/50 transition-opacity hover:opacity-80">
+            <Avatar className="h-9 w-9 ring-2 ring-primary/10">
               <AvatarImage src={user?.image || avatarUrl(user?.name)} alt={user?.name || "User"} />
-              <AvatarFallback className="text-xs">{initials(user?.name)}</AvatarFallback>
+              <AvatarFallback className="text-xs font-semibold">{initials(user?.name)}</AvatarFallback>
             </Avatar>
           </button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-56">
           <DropdownMenuLabel>
-            <div className="font-medium">{user?.name || "Administrator"}</div>
+            <div className="font-semibold">{user?.name || "Administrator"}</div>
             <div className="text-xs font-normal text-muted-foreground">{user?.email}</div>
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
-          <DropdownMenuItem><User className="h-4 w-4" /> Profile</DropdownMenuItem>
+          <DropdownMenuItem>
+            <User className="h-4 w-4" /> Profile
+          </DropdownMenuItem>
+          <DropdownMenuItem asChild>
+            <Link href="/dashboard/settings">
+              <Settings className="h-4 w-4" /> Settings
+            </Link>
+          </DropdownMenuItem>
+          <DropdownMenuItem>
+            <HelpCircle className="h-4 w-4" /> Help
+          </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem
             className="text-destructive focus:text-destructive"

@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { ok, created, handleError, parsePagination } from "@/lib/api";
 import { sessionSchema } from "@/lib/validations";
 import { auth } from "@/lib/auth";
+import { getRequiredTenantId } from "@/lib/tenant-context";
 
 export async function GET(req: NextRequest) {
   try {
@@ -21,6 +22,6 @@ export async function POST(req: NextRequest) {
     const authSession = await auth();
     if (!authSession) return handleError({ code: "P2025" });
     const data = sessionSchema.parse(await req.json());
-    return created(await prisma.academicSession.create({ data }));
+    return created(await prisma.academicSession.create({ data: { ...data, schoolId: getRequiredTenantId() } }));
   } catch (e) { return handleError(e); }
 }

@@ -75,11 +75,11 @@ export function StudentForm({ open, onOpenChange, student, classes, sections, pa
       const payload = { ...values };
       if (isEdit && student) await studentsApi.update(student.id, payload);
       else await studentsApi.create(payload);
-      toast({ variant: "success", title: isEdit ? "Student updated" : "Student created" });
+      toast({ variant: "success", title: isEdit ? t("toast.studentUpdated") : t("toast.studentCreated") });
       onOpenChange(false);
       onSaved();
     } catch (e) {
-      toast({ variant: "destructive", title: "Error", description: (e as Error).message });
+      toast({ variant: "destructive", title: t("common.error"), description: (e as Error).message });
     }
   };
 
@@ -89,7 +89,7 @@ export function StudentForm({ open, onOpenChange, student, classes, sections, pa
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle>{isEdit ? "Edit Student" : "Add Student"}</DialogTitle>
+          <DialogTitle>{isEdit ? t("form.editStudent") : t("form.addStudent")}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit(onSubmit)} className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Field label={t("field.studentId")} error={errors.studentId?.message} required>
@@ -100,7 +100,7 @@ export function StudentForm({ open, onOpenChange, student, classes, sections, pa
           </Field>
           <Field label={t("field.gender")} error={errors.gender?.message}>
             <Select value={watch("gender")} onValueChange={(v) => setValue("gender", v as StudentInput["gender"])}>
-              <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+              <SelectTrigger><SelectValue placeholder={t("placeholder.select")} /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="MALE">{t("field.male")}</SelectItem>
                 <SelectItem value="FEMALE">{t("field.female")}</SelectItem>
@@ -112,7 +112,7 @@ export function StudentForm({ open, onOpenChange, student, classes, sections, pa
             <Input type="date" {...register("dateOfBirth")} />
           </Field>
           <Field label={t("field.bloodGroup")} error={errors.bloodGroup?.message}>
-            <Input {...register("bloodGroup")} placeholder="e.g. O+" />
+            <Input {...register("bloodGroup")} placeholder={t("placeholder.bloodExample")} />
           </Field>
           <Field label={t("field.phone")} error={errors.phone?.message}>
             <Input {...register("phone")} />
@@ -125,7 +125,7 @@ export function StudentForm({ open, onOpenChange, student, classes, sections, pa
           </Field>
           <Field label={t("field.class")} error={errors.classId?.message}>
             <Select value={watch("classId") || ""} onValueChange={(v) => setValue("classId", v)}>
-              <SelectTrigger><SelectValue placeholder="Select class" /></SelectTrigger>
+              <SelectTrigger><SelectValue placeholder={t("placeholder.selectClass")} /></SelectTrigger>
               <SelectContent>
                 {classes.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
               </SelectContent>
@@ -133,7 +133,7 @@ export function StudentForm({ open, onOpenChange, student, classes, sections, pa
           </Field>
           <Field label={t("field.section")} error={errors.sectionId?.message}>
             <Select value={watch("sectionId") || ""} onValueChange={(v) => setValue("sectionId", v)}>
-              <SelectTrigger><SelectValue placeholder="Select section" /></SelectTrigger>
+              <SelectTrigger><SelectValue placeholder={t("placeholder.selectSection")} /></SelectTrigger>
               <SelectContent>
                 {filteredSections.map((s) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
               </SelectContent>
@@ -147,7 +147,7 @@ export function StudentForm({ open, onOpenChange, student, classes, sections, pa
           </Field>
           <Field label={t("field.parent")} error={errors.parentId?.message}>
             <Select value={watch("parentId") || ""} onValueChange={(v) => setValue("parentId", v)}>
-              <SelectTrigger><SelectValue placeholder="Link parent" /></SelectTrigger>
+              <SelectTrigger><SelectValue placeholder={t("placeholder.linkParent")} /></SelectTrigger>
               <SelectContent>
                 {parents.map((p) => <SelectItem key={p.id} value={p.id}>{p.fullName}</SelectItem>)}
               </SelectContent>
@@ -168,7 +168,7 @@ export function StudentForm({ open, onOpenChange, student, classes, sections, pa
           </Field>
           <Field label={t("field.medium")} error={errors.medium?.message}>
             <Select value={watch("medium") ?? ""} onValueChange={(v) => setValue("medium", v as StudentInput["medium"])}>
-              <SelectTrigger><SelectValue placeholder="Select medium" /></SelectTrigger>
+              <SelectTrigger><SelectValue placeholder={t("placeholder.selectMedium")} /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="BANGLA">{t("medium.BANGLA")}</SelectItem>
                 <SelectItem value="ENGLISH">{t("medium.ENGLISH")}</SelectItem>
@@ -179,7 +179,7 @@ export function StudentForm({ open, onOpenChange, student, classes, sections, pa
           {watch("medium") === "MADRASA" && (
             <Field label={t("field.madrasaStream")} error={errors.madrasaLevel?.message}>
               <Select value={watch("madrasaLevel") ?? ""} onValueChange={(v) => setValue("madrasaLevel", v as StudentInput["madrasaLevel"])}>
-                <SelectTrigger><SelectValue placeholder="Select stream" /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder={t("placeholder.selectStream")} /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="EBTEDAYEE">{t("madrasa.EBTEDAYEE")}</SelectItem>
                   <SelectItem value="DAKHIL">{t("madrasa.DAKHIL")}</SelectItem>
@@ -190,7 +190,7 @@ export function StudentForm({ open, onOpenChange, student, classes, sections, pa
           )}
           <Field label={t("field.shift")} error={errors.shift?.message}>
             <Select value={watch("shift") ?? ""} onValueChange={(v) => setValue("shift", v as StudentInput["shift"])}>
-              <SelectTrigger><SelectValue placeholder="Select shift" /></SelectTrigger>
+              <SelectTrigger><SelectValue placeholder={t("placeholder.selectShift")} /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="MORNING">{t("shift.MORNING")}</SelectItem>
                 <SelectItem value="DAY">{t("shift.DAY")}</SelectItem>
@@ -200,7 +200,7 @@ export function StudentForm({ open, onOpenChange, student, classes, sections, pa
           </Field>
           <Field label={t("field.campus")} error={errors.campusId?.message}>
             <Select value={watch("campusId") || ""} onValueChange={(v) => setValue("campusId", v)}>
-              <SelectTrigger><SelectValue placeholder="Select campus" /></SelectTrigger>
+              <SelectTrigger><SelectValue placeholder={t("placeholder.selectCampus")} /></SelectTrigger>
               <SelectContent>
                 {campuses.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
               </SelectContent>
@@ -208,22 +208,22 @@ export function StudentForm({ open, onOpenChange, student, classes, sections, pa
           </Field>
           <Field label={t("field.session")} error={errors.sessionId?.message}>
             <Select value={watch("sessionId") || ""} onValueChange={(v) => setValue("sessionId", v)}>
-              <SelectTrigger><SelectValue placeholder="Select session" /></SelectTrigger>
+              <SelectTrigger><SelectValue placeholder={t("placeholder.selectSession")} /></SelectTrigger>
               <SelectContent>
                 {sessions.map((s) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
               </SelectContent>
             </Select>
           </Field>
           <Field label={t("field.photoUrl")} error={errors.photo?.message} className="sm:col-span-2">
-            <Input {...register("photo")} placeholder="https://..." />
+            <Input {...register("photo")} placeholder={t("placeholder.photoUrl")} />
           </Field>
           <Field label={t("field.address")} error={errors.address?.message} className="sm:col-span-2">
             <Textarea {...register("address")} />
           </Field>
           <DialogFooter className="sm:col-span-2">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>{t("common.cancel")}</Button>
             <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? "Saving..." : isEdit ? "Update" : "Create"}
+              {isSubmitting ? t("common.saving") : isEdit ? t("common.update") : t("common.create")}
             </Button>
           </DialogFooter>
         </form>

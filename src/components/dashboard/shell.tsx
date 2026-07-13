@@ -8,11 +8,12 @@ import { PageTransition } from "@/components/ux/motion";
 
 type Props = {
   children: React.ReactNode;
+  role?: string;
   user?: { name?: string | null; email?: string | null; image?: string | null };
   notifications?: { id: string; title: string }[];
 };
 
-export function DashboardShell({ children, user, notifications }: Props) {
+export function DashboardShell({ children, role, user, notifications }: Props) {
   const [open, setOpen] = React.useState(false);
   return (
     <div className="relative flex min-h-screen">
@@ -21,7 +22,7 @@ export function DashboardShell({ children, user, notifications }: Props) {
       {/* ⌘K command palette (global) */}
       <CommandPalette />
 
-      <Sidebar open={open} onClose={() => setOpen(false)} user={user} />
+      <Sidebar open={open} onClose={() => setOpen(false)} role={role} user={user} />
 
       <div className="flex min-w-0 flex-1 flex-col">
         <Topbar onMenu={() => setOpen(true)} user={user} notifications={notifications} />
