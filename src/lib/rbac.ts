@@ -59,21 +59,11 @@ export function requiresAdminApi(pathname: string): boolean {
   return matchesRoute(pathname, ADMIN_API_ROUTES);
 }
 
-export async function getUserRole(): Promise<Role | null> {
-  // Lazy import keeps `@/lib/auth` (Prisma/bcrypt) out of this module's static
-  // import graph, so middleware can import the pure helpers above edge-safely.
-  const { auth } = await import("@/lib/auth");
-  const session = await auth();
-  return (session?.user as { role?: Role })?.role ?? null;
-}
-
-export async function canAccessRoute(pathname: string): Promise<boolean> {
-  const role = await getUserRole();
-  if (!role) return false;
-  if (isAdmin(role)) return true;
-  if (requiresAdmin(pathname)) return false;
-  return true;
-}
+// NOTE: Session-dependent helpers (getUserRole / canAccessRoute) live in
+// `@/lib/api-auth`. They must NOT be defined here — importing `@/lib/auth`
+// (Prisma/bcrypt), even via a dynamic `import()`, makes webpack ship Prisma's
+// WASM query engine (~2.3 MB) as an edge-chunk of the middleware bundle. This
+// module is imported by middleware and MUST stay free of any `@/lib/auth` link.
 
 /**
  * Get the dashboard base path for a given role.
