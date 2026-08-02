@@ -9,7 +9,10 @@ const securityHeaders = [
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       "img-src 'self' data: blob: https://images.unsplash.com https://ui-avatars.com https://i.pravatar.cc",
       "font-src 'self' https://fonts.gstatic.com",
-      "connect-src 'self' https://api.openai.com",
+      // Vapi AI voice widget uses WebRTC via Vapi + Daily.co
+      "connect-src 'self' https://api.openai.com https://api.vapi.ai wss://api.vapi.ai https://*.daily.co wss://*.daily.co",
+      "media-src 'self' blob:",
+      "worker-src 'self' blob:",
       "frame-ancestors 'none'",
       "base-uri 'self'",
       "form-action 'self'",
@@ -33,7 +36,8 @@ const securityHeaders = [
   },
   {
     key: "Permissions-Policy",
-    value: "camera=(), microphone=(), geolocation=(), interest-cohort=()",
+    // microphone=(self): required for the Vapi AI voice widget (same-origin only).
+    value: "camera=(), microphone=(self), geolocation=(), interest-cohort=()",
   },
   {
     key: "Strict-Transport-Security",

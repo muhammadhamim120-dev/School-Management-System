@@ -1,14 +1,20 @@
 "use client";
 import * as React from "react";
+import { usePathname } from "next/navigation";
 import { motion, useReducedMotion, type Variants } from "framer-motion";
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
-/** Page transition wrapper — fade + rise on mount. */
+/**
+ * Page transition wrapper — fade + rise. Keyed on the pathname so the entrance
+ * animation replays on every client-side navigation, not just first mount.
+ */
 export function PageTransition({ children }: { children: React.ReactNode }) {
   const reduce = useReducedMotion();
+  const pathname = usePathname();
   return (
     <motion.div
+      key={pathname}
       initial={reduce ? false : { opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, ease }}
