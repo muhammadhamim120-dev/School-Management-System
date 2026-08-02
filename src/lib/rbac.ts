@@ -1,5 +1,3 @@
-import { auth } from "@/lib/auth";
-
 export type Role = "SUPER_ADMIN" | "SCHOOL_ADMIN" | "ADMIN" | "TEACHER" | "STAFF" | "PARENT" | "STUDENT" | "ACCOUNTANT";
 
 // Role hierarchy for permission checks (higher = more access)
@@ -62,6 +60,9 @@ export function requiresAdminApi(pathname: string): boolean {
 }
 
 export async function getUserRole(): Promise<Role | null> {
+  // Lazy import keeps `@/lib/auth` (Prisma/bcrypt) out of this module's static
+  // import graph, so middleware can import the pure helpers above edge-safely.
+  const { auth } = await import("@/lib/auth");
   const session = await auth();
   return (session?.user as { role?: Role })?.role ?? null;
 }

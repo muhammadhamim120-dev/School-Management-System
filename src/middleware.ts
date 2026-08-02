@@ -1,6 +1,11 @@
-import { auth } from "@/lib/auth";
+import NextAuth from "next-auth";
 import { NextResponse } from "next/server";
+import { authConfig } from "@/lib/auth.config";
 import { requiresAdmin, getDashboardPath } from "@/lib/rbac";
+
+// Build an edge-safe auth instance from the lightweight config only.
+// This avoids pulling Prisma/bcrypt/Zod (via `@/lib/auth`) into the Edge bundle.
+const { auth } = NextAuth(authConfig);
 
 export default auth((req) => {
   const isLoggedIn = !!req.auth;

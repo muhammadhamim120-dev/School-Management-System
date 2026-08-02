@@ -3,10 +3,17 @@ import Credentials from "next-auth/providers/credentials";
 import { prisma } from "@/lib/prisma";
 import { verifyPassword } from "@/lib/password";
 import { loginSchema } from "@/lib/validations";
+import { authConfig } from "@/lib/auth.config";
 
+/**
+ * Full auth instance (Node.js runtime).
+ *
+ * Extends the edge-safe `authConfig` with the Credentials provider, whose
+ * `authorize` uses Prisma + bcrypt. This module is imported by server
+ * components, route handlers and API routes — never by middleware.
+ */
 export const { handlers, auth, signIn, signOut } = NextAuth({
-  session: { strategy: "jwt" },
-  pages: { signIn: "/login" },
+  ...authConfig,
   providers: [
     Credentials({
       credentials: { email: {}, password: {}, schoolSlug: {} },
@@ -44,22 +51,4 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       },
     }),
   ],
-  callbacks: {
-    jwt({ token, user }) {
-      if (user) {
-        token.id = user.id;
-        token.role = (user as { role?: string }).role;
-        token.schoolId = (user as { schoolId?: string | null }).schoolId ?? null;
-      }
-      return token;
-    },
-    session({ session, token }) {
-      if (session.user) {
-        session.user.id = token.id as string;
-        (session.user as { role?: string }).role = token.role as string;
-        (session.user as { schoolId?: string | null }).schoolId = token.schoolId as string | null;
-      }
-      return session;
-    },
-  },
 });
