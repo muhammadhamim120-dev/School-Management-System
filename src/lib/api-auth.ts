@@ -1,5 +1,6 @@
 import { auth } from "@/lib/auth";
 import { handleError } from "@/lib/api";
+import { isAdmin as roleIsAdmin, requiresAdmin, type Role } from "@/lib/rbac";
 
 // API authentication utilities
 
@@ -143,6 +144,27 @@ export async function isAdmin(): Promise<boolean> {
 
 export async function isTeacherOrAdmin(): Promise<boolean> {
   return hasRole("ADMIN", "SCHOOL_ADMIN", "TEACHER", "SUPER_ADMIN");
+}
+
+/**
+ * Get the current user's role from the session, or null if unauthenticated.
+ * (Moved here from `@/lib/rbac` to keep that module edge-safe.)
+ */
+export async function getUserRole(): Promise<Role | null> {
+  const session = await auth();
+  return (session?.user as { role?: Role })?.role ?? null;
+}
+
+/**
+ * Whether the current session may access the given route.
+ * (Moved here from `@/lib/rbac` to keep that module edge-safe.)
+ */
+export async function canAccessRoute(pathname: string): Promise<boolean> {
+  const role = await getUserRole();
+  if (!role) return false;
+  if (roleIsAdmin(role)) return true;
+  if (requiresAdmin(pathname)) return false;
+  return true;
 }
 
 export function unauthorizedResponse(message = "Unauthorized"): Response {
