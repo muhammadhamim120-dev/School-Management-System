@@ -26,7 +26,8 @@ export const GET = withTenantContext(async (req: NextRequest, { params }: { para
     if (!student) return fail("Student not found or access denied.", 404);
 
     const results = await prisma.result.findMany({
-      where: tenantWhere({ studentId }),
+      // Result has no schoolId column; it is tenant-scoped via the student.
+      where: { studentId },
       include: { exam: true, subject: true },
       orderBy: { createdAt: "desc" },
     });

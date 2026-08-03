@@ -181,8 +181,10 @@ export function Topbar({ onMenu, user, notifications = [] }: Props) {
             <div className="text-xs font-normal text-muted-foreground">{user?.email}</div>
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
-          <DropdownMenuItem>
-            <User className="h-4 w-4" /> Profile
+          <DropdownMenuItem asChild>
+            <Link href="/profile">
+              <User className="h-4 w-4" /> Profile
+            </Link>
           </DropdownMenuItem>
           <DropdownMenuItem asChild>
             <Link href="/dashboard/settings">

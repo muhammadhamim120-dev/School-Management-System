@@ -14,7 +14,7 @@ export const GET = withTenantContext(async (_req: NextRequest, { params }: { par
 
     const [payments, transactions] = await Promise.all([
       invoiceIds.length ? prisma.payment.findMany({ where: tenantWhere({ invoiceId: { in: invoiceIds } }), orderBy: { createdAt: "desc" } }) : [],
-      invoiceIds.length ? prisma.paymentTransaction.findMany({ where: tenantWhere({ invoiceId: { in: invoiceIds } }), orderBy: { createdAt: "desc" }, take: 100 }) : [],
+      invoiceIds.length ? prisma.paymentTransaction.findMany({ where: { invoiceId: { in: invoiceIds } }, orderBy: { createdAt: "desc" }, take: 100 }) : [],
     ]);
 
     const totalPaid = payments.reduce((s: number, p: { amount: number; refundedAmount: number }) => s + (p.amount - (p.refundedAmount ?? 0)), 0);

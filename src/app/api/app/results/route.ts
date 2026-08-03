@@ -18,7 +18,8 @@ export async function GET(req: NextRequest) {
     return runWithTenant({ schoolId: student.schoolId }, async () => {
       const since = sinceParam(req);
       const items = await prisma.result.findMany({
-        where: tenantWhere({ studentId: auth.studentId, ...(since ? { createdAt: { gte: since } } : {}) }),
+        // Result has no schoolId column; it is tenant-scoped via the student.
+        where: { studentId: auth.studentId, ...(since ? { createdAt: { gte: since } } : {}) },
         include: { exam: true, subject: true },
         orderBy: { createdAt: "desc" },
       });

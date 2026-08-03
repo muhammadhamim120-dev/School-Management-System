@@ -58,6 +58,11 @@ async function main() {
   });
   console.log("✔ Admin user: admin@greenwood.edu / admin123");
 
+  // Login accounts for parents/students are created alongside their records
+  // below (they map to the User table by email). Default passwords:
+  const parentPassword = await bcrypt.hash("parent123", 10);
+  const studentPassword = await bcrypt.hash("student123", 10);
+
   // --- Settings ---
   const existingSetting = await prisma.setting.findFirst();
   if (!existingSetting) await prisma.setting.create({ data: { schoolId } });
@@ -191,8 +196,16 @@ async function main() {
       },
     });
     parents.push(p);
+    // Parent portal login account (mapped to the Parent record by email).
+    if (p.email) {
+      await prisma.user.upsert({
+        where: { email_schoolId: { email: p.email, schoolId } },
+        update: {},
+        create: { name: p.fullName, email: p.email, password: parentPassword, role: "PARENT", schoolId },
+      });
+    }
   }
-  console.log(`✔ ${parents.length} parents`);
+  console.log(`✔ ${parents.length} parents (+ portal login accounts)`);
 
   // --- Students ---
   const firstNames = ["Rahim", "Karim", "Ayesha", "Fatema", "Tanvir", "Nusrat", "Sadia", "Rakib", "Mim", "Sabbir", "Jannat", "Arif"];
@@ -203,6 +216,7 @@ async function main() {
     const fullName = `${pick(firstNames, i)} ${pick(lastNames, i + 3)}`;
     const cls = pick(classes, i);
     const sec = allSections.find((s: { classId: string }) => s.classId === cls.id) ?? allSections[0];
+    const studentEmail = `${fullName.split(" ")[0].toLowerCase()}${i}@student.greenwood.edu`;
     await prisma.student.upsert({
       where: { schoolId_studentId: { schoolId, studentId: `STU-${3001 + i}` } },
       update: {},
@@ -213,7 +227,7 @@ async function main() {
         dateOfBirth: yearsAgo(6 + (i % 5)),
         bloodGroup: pick(["A+", "B+", "O+", "AB+", "O-"], i),
         phone: `+8801${String(700000000 + i * 111111).padStart(9, "0")}`,
-        email: `${fullName.split(" ")[0].toLowerCase()}${i}@student.greenwood.edu`,
+        email: studentEmail,
         classId: cls.id,
         sectionId: sec.id,
         rollNumber: String(i + 1).padStart(2, "0"),
@@ -228,9 +242,15 @@ async function main() {
         schoolId,
       },
     });
+    // Student portal login account (mapped to the Student record by email).
+    await prisma.user.upsert({
+      where: { email_schoolId: { email: studentEmail, schoolId } },
+      update: {},
+      create: { name: fullName, email: studentEmail, password: studentPassword, role: "STUDENT", schoolId },
+    });
     created++;
   }
-  console.log(`✔ ${created} students`);
+  console.log(`✔ ${created} students (+ portal login accounts)`);
 
   // --- Attendance (last 5 days for first 12 students) ---
   const someStudents = await prisma.student.findMany({ take: 12 });

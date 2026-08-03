@@ -19,7 +19,7 @@ export async function GET(req: NextRequest) {
     if (!student) return fail("Student not found.", 404);
 
     return runWithTenant({ schoolId: student.schoolId }, async () => {
-      const results = await prisma.result.findMany({ where: tenantWhere({ studentId: v.studentId }), include: { exam: true, subject: true }, orderBy: { createdAt: "desc" } });
+      const results = await prisma.result.findMany({ where: { studentId: v.studentId }, include: { exam: true, subject: true }, orderBy: { createdAt: "desc" } });
 
       const latestExam = (results[0] as { exam?: { name: string } | null } | undefined)?.exam?.name;
       const examResults = results.filter((r: { exam?: { name: string } | null }) => r.exam?.name === latestExam);

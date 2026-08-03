@@ -39,7 +39,8 @@ export const GET = withTenantContext(async () => {
             _count: { _all: true },
           }),
           prisma.result.findMany({
-            where: tenantWhere({ studentId: child.id }),
+            // Result has no schoolId column; it is tenant-scoped via the student.
+            where: { studentId: child.id },
             include: { exam: true },
             orderBy: { createdAt: "desc" },
             take: 60,

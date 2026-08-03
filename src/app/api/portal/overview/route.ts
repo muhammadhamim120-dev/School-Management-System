@@ -20,10 +20,10 @@ export async function GET(req: NextRequest) {
     return runWithTenant({ schoolId: student.schoolId }, async () => {
       const [attendance, results, invoices, payments, transport, notices, routine, homework, messages, leaves] = await Promise.all([
         prisma.attendance.groupBy({ by: ["status"], where: tenantWhere({ studentId }), _count: { _all: true } }),
-        prisma.result.findMany({ where: tenantWhere({ studentId }), include: { exam: true, subject: true }, orderBy: { createdAt: "desc" }, take: 60 }),
+        prisma.result.findMany({ where: { studentId }, include: { exam: true, subject: true }, orderBy: { createdAt: "desc" }, take: 60 }),
         prisma.invoice.findMany({ where: tenantWhere({ studentId }), orderBy: { createdAt: "desc" }, take: 30 }),
         prisma.payment.findMany({ where: tenantWhere({ invoice: { studentId } }), include: { invoice: true }, orderBy: { createdAt: "desc" }, take: 30 }),
-        prisma.studentTransport.findMany({ where: tenantWhere({ studentId, status: "ACTIVE" as const }), include: { route: true, stop: true } }),
+        prisma.studentTransport.findMany({ where: { studentId, status: "ACTIVE" as const }, include: { route: true, stop: true } }),
         prisma.notice.findMany({ where: tenantWhere(), orderBy: [{ pinned: "desc" }, { createdAt: "desc" }], take: 12 }),
         student.classId ? prisma.routineSlot.findMany({ where: tenantWhere({ classId: student.classId, OR: [{ sectionId: student.sectionId }, { sectionId: null }] }), include: { subject: true, teacher: true } }) : [],
         student.classId ? prisma.homework.findMany({ where: tenantWhere({ classId: student.classId, OR: [{ sectionId: student.sectionId }, { sectionId: null }] }), include: { subject: true, teacher: true }, orderBy: { dueDate: "desc" }, take: 30 }) : [],

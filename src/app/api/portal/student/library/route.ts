@@ -23,12 +23,14 @@ export const GET = withTenantContext(async () => {
 
     const [activeLoans, historyLoans] = await Promise.all([
       prisma.bookLoan.findMany({
-        where: tenantWhere({ studentId: student.id, status: { in: activeStatuses } }),
+        // BookLoan has no schoolId column; scoped via the (tenant-checked) student.
+        where: { studentId: student.id, status: { in: activeStatuses } },
         include: { copy: { include: { book: true } } },
         orderBy: { issuedAt: "desc" },
       }),
       prisma.bookLoan.findMany({
-        where: tenantWhere({ studentId: student.id, status: { in: historyStatuses } }),
+        // BookLoan has no schoolId column; scoped via the (tenant-checked) student.
+        where: { studentId: student.id, status: { in: historyStatuses } },
         include: { copy: { include: { book: true } } },
         orderBy: { issuedAt: "desc" },
         take: 30,

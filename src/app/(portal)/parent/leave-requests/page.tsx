@@ -28,8 +28,7 @@ export default function ParentLeaveRequestsPage() {
   const [loading, setLoading] = React.useState(true);
 
   React.useEffect(() => {
-    // Fetch from overview which contains leave data
-    request<{ leaves: LeaveRequest[] }>("/api/portal/overview")
+    request<{ leaves: LeaveRequest[] }>("/api/portal/parent/leave")
       .then((d) => setLeaves(d.leaves ?? []))
       .catch(() => setLeaves([]))
       .finally(() => setLoading(false));

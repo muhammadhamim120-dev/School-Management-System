@@ -3,19 +3,21 @@ import { prisma } from "@/lib/prisma";
 import { ok, handleError } from "@/lib/api";
 import { smsAvailability } from "@/services/sms";
 import { MAX_SMS_ATTEMPTS } from "@/lib/sms";
-import { tenantWhere } from "@/lib/tenant";
+import { tenantWhere, getTenantSchoolId } from "@/lib/tenant";
 import { withTenantContext } from "@/lib/api-helpers";
 
 export const GET = withTenantContext(async (_req: NextRequest) => {
   try {
+    // SmsRecipient has no schoolId column; scope it via its parent SmsMessage.
+    const schoolId = getTenantSchoolId();
     const [templates, totalMessages, statusAgg, sentAgg, categoryAgg, deliveryAgg, retryQueue] = await Promise.all([
       prisma.smsTemplate.count({ where: tenantWhere() }),
       prisma.smsMessage.count({ where: tenantWhere() }),
       prisma.smsMessage.groupBy({ by: ["status"], where: tenantWhere(), _count: { _all: true } }),
       prisma.smsMessage.aggregate({ _sum: { sentCount: true, totalCount: true, deliveredCount: true, failedCount: true }, where: tenantWhere() }),
       prisma.smsMessage.groupBy({ by: ["category"], where: tenantWhere(), _count: { _all: true } }),
-      prisma.smsRecipient.groupBy({ by: ["status"], _count: { _all: true } }),
-      prisma.smsRecipient.count({ where: tenantWhere({ status: "FAILED" as const, attempts: { lt: MAX_SMS_ATTEMPTS } }) }),
+      prisma.smsRecipient.groupBy({ by: ["status"], where: { message: { schoolId } }, _count: { _all: true } }),
+      prisma.smsRecipient.count({ where: { message: { schoolId }, status: "FAILED" as const, attempts: { lt: MAX_SMS_ATTEMPTS } } }),
     ]);
     return ok({
       templates, totalMessages,

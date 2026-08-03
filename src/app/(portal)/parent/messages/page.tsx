@@ -21,13 +21,8 @@ export default function ParentMessagesPage() {
   const [loading, setLoading] = React.useState(true);
 
   React.useEffect(() => {
-    request<{ messages: Message[] }>("/api/portal/parent/children")
-      .then((d) => {
-        // Messages are fetched from the overview endpoint
-        return request<{ messages: Message[] }>("/api/portal/overview");
-      })
-      .catch(() => ({ messages: [] }))
-      .then((d: { messages?: Message[] }) => setMessages(d?.messages ?? []))
+    request<{ messages: Message[] }>("/api/portal/parent/messages")
+      .then((d) => setMessages(d?.messages ?? []))
       .catch(() => setMessages([]))
       .finally(() => setLoading(false));
   }, []);

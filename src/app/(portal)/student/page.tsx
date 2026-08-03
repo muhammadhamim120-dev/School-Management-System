@@ -29,12 +29,7 @@ export default function StudentDashboardPage() {
   const [loading, setLoading] = React.useState(true);
 
   React.useEffect(() => {
-    request<StudentDashboardData>("/api/portal/student/homework")
-      .then((d) => {
-        // Build dashboard from available student data
-        return request<StudentDashboardData>("/api/portal/overview");
-      })
-      .catch(() => null)
+    request<StudentDashboardData>("/api/portal/student/overview")
       .then((d) => setData(d))
       .catch(() => setData(null))
       .finally(() => setLoading(false));
