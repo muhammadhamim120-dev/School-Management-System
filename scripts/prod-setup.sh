@@ -19,7 +19,8 @@ FILE=".env.production.local"
 [ -f "$FILE" ] || { echo "✖ $FILE not found."; exit 1; }
 
 # Extract PROD_DATABASE_URL (strip surrounding quotes), without echoing it.
-URL="$(grep -E '^PROD_DATABASE_URL=' "$FILE" | head -1 | cut -d= -f2- | sed -E 's/^"//; s/"$//; s/^'\''//; s/'\''$//')"
+# `|| true` so a missing line doesn't trip `set -e`/pipefail before the guard.
+URL="$(grep -E '^PROD_DATABASE_URL=' "$FILE" | head -1 | cut -d= -f2- | sed -E 's/^"//; s/"$//; s/^'\''//; s/'\''$//' || true)"
 
 if [ -z "${URL:-}" ]; then
   echo "✖ PROD_DATABASE_URL is not set in $FILE."
