@@ -17,11 +17,25 @@ npx prisma generate
 
 if [ "${VERCEL:-}" = "1" ]; then
   # Migrations require a DIRECT (non-pooled) connection — pgbouncer/pooled URLs
-  # break advisory locks. Prefer the non-pooled var, fall back to DATABASE_URL.
-  MIGRATE_URL="${POSTGRES_URL_NON_POOLING:-${DATABASE_URL_UNPOOLED:-${DATABASE_URL:-}}}"
+  # break advisory locks. The Vercel Postgres/Neon integration may prefix its
+  # vars (e.g. school_management_POSTGRES_URL_NON_POOLING), so pick the first
+  # non-empty candidate across standard and prefixed names (bash indirect expansion).
+  pick_url() {
+    local name val
+    for name in "$@"; do
+      val="${!name:-}"
+      if [ -n "$val" ]; then printf '%s' "$val"; return 0; fi
+    done
+    return 1
+  }
+  MIGRATE_URL="$(pick_url \
+    POSTGRES_URL_NON_POOLING DATABASE_URL_UNPOOLED \
+    school_management_POSTGRES_URL_NON_POOLING school_management_DATABASE_URL_UNPOOLED \
+    DATABASE_URL school_management_DATABASE_URL school_management_POSTGRES_PRISMA_URL || true)"
 
   if [ -z "$MIGRATE_URL" ]; then
-    echo "✖ No database URL injected (POSTGRES_URL_NON_POOLING / DATABASE_URL). Aborting build." >&2
+    echo "✖ No database URL injected (checked standard + school_management_* names). Aborting build." >&2
+    env | grep -iE 'POSTGRES_URL_NON_POOLING|DATABASE_URL' | sed -E 's/=.*/=<hidden>/' >&2 || true
     exit 1
   fi
 
