@@ -18,24 +18,41 @@ cd "$(dirname "$0")/.."
 FILE=".env.production.local"
 [ -f "$FILE" ] || { echo "✖ $FILE not found."; exit 1; }
 
-# Extract PROD_DATABASE_URL (strip surrounding quotes), without echoing it.
-# `|| true` so a missing line doesn't trip `set -e`/pipefail before the guard.
-URL="$(grep -E '^PROD_DATABASE_URL=' "$FILE" | head -1 | cut -d= -f2- | sed -E 's/^"//; s/"$//; s/^'\''//; s/'\''$//' || true)"
+# Resolve the best usable connection string from the file: prefer an explicit
+# PROD_DATABASE_URL, then any non-pooled URL, then a pooled one. Only accepts a
+# real postgres:// value (skips "[SENSITIVE]" placeholders and localhost). This
+# lets you paste the Vercel dashboard snippet as-is without renaming keys.
+URL="$(python3 - "$FILE" <<'PY' || true
+import sys, re
+vals = {}
+for raw in open(sys.argv[1]):
+    s = raw.strip()
+    if "=" not in s or s.startswith("#"): continue
+    k, v = s.split("=", 1)
+    vals[k.strip()] = v.strip().strip('"').strip("'")
+def real(v):
+    return (v.startswith("postgres://") or v.startswith("postgresql://")) \
+        and "localhost" not in v and "127.0.0.1" not in v
+order = ["PROD_DATABASE_URL", "POSTGRES_URL_NON_POOLING", "DATABASE_URL_UNPOOLED",
+         "school_management_POSTGRES_URL_NON_POOLING", "school_management_DATABASE_URL_UNPOOLED",
+         "DATABASE_URL", "POSTGRES_URL", "POSTGRES_PRISMA_URL",
+         "school_management_DATABASE_URL", "school_management_POSTGRES_URL"]
+for k in order:
+    v = vals.get(k)
+    if v and real(v):
+        print(v); break
+PY
+)"
 
 if [ -z "${URL:-}" ]; then
-  echo "✖ PROD_DATABASE_URL is not set in $FILE."
-  echo "  Copy POSTGRES_URL_NON_POOLING from Vercel → Storage → your DB → .env.local view,"
-  echo "  then add:  PROD_DATABASE_URL=\"postgresql://…\"  to $FILE"
+  echo "✖ No usable production connection string found in $FILE."
+  echo "  Every DB value is either absent or the '[SENSITIVE]' placeholder that"
+  echo "  'vercel env pull' writes. Get the REAL string from the dashboard:"
+  echo "    Vercel → Storage → your Postgres DB → '.env.local' / 'Quickstart' view"
+  echo "    (or Neon Console → Connection details), then add to $FILE:"
+  echo "      PROD_DATABASE_URL=\"postgresql://…non-pooled url…\""
   exit 1
 fi
-case "$URL" in
-  *localhost*|*127.0.0.1*) echo "✖ Refusing to target localhost."; exit 1 ;;
-  '[SENSITIVE]') echo "✖ Value is the [SENSITIVE] placeholder from 'vercel env pull'. Copy the REAL string from the dashboard."; exit 1 ;;
-esac
-case "$URL" in
-  postgres://*|postgresql://*) : ;;
-  *) echo "✖ Not a postgres:// URL. Paste the real connection string."; exit 1 ;;
-esac
 
 # Direct (non-pooled) connection for every Prisma operation — avoids pgbouncer
 # issues with migrations. Exported so the schema's env("DATABASE_URL") resolves.
