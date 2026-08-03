@@ -59,15 +59,15 @@ export default function ChildDetailPage() {
   }
 
   const navItems = [
-    { label: "Attendance", href: `/portal/parent/children/${studentId}/attendance`, icon: CalendarCheck, stat: data.attendanceRate !== null ? `${data.attendanceRate}%` : "—" },
-    { label: "Results", href: `/portal/parent/children/${studentId}/results`, icon: Award, stat: data.latestGpa ? `GPA ${data.latestGpa.gpa.toFixed(2)}` : "—" },
-    { label: "Fees", href: `/portal/parent/children/${studentId}/fees`, icon: Wallet, stat: data.outstandingFees > 0 ? `৳${data.outstandingFees.toLocaleString()}` : "Clear" },
-    { label: "Homework", href: `/portal/parent/children/${studentId}/homework`, icon: NotebookPen, stat: `${data.recentHomework.length}` },
+    { label: "Attendance", href: `/parent/children/${studentId}/attendance`, icon: CalendarCheck, stat: data.attendanceRate !== null ? `${data.attendanceRate}%` : "—" },
+    { label: "Results", href: `/parent/children/${studentId}/results`, icon: Award, stat: data.latestGpa ? `GPA ${data.latestGpa.gpa.toFixed(2)}` : "—" },
+    { label: "Fees", href: `/parent/children/${studentId}/fees`, icon: Wallet, stat: data.outstandingFees > 0 ? `৳${data.outstandingFees.toLocaleString()}` : "Clear" },
+    { label: "Homework", href: `/parent/children/${studentId}/homework`, icon: NotebookPen, stat: `${data.recentHomework.length}` },
   ];
 
   return (
     <div>
-      <Link href="/portal/parent/children" className="inline-flex items-center gap-1 text-sm text-primary hover:underline mb-4">
+      <Link href="/parent/children" className="inline-flex items-center gap-1 text-sm text-primary hover:underline mb-4">
         <ChevronLeft className="h-4 w-4" /> Back to children
       </Link>
       <PageHeader title={data.name} description={`${data.className ?? ""}${data.section ? ` - ${data.section}` : ""} · ${data.studentId}${data.roll ? ` · Roll ${data.roll}` : ""}`} />
@@ -117,7 +117,7 @@ export default function ChildDetailPage() {
         <Card className="mb-4">
           <CardHeader className="flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm">Recent Results</CardTitle>
-            <Link href={`/portal/parent/children/${studentId}/results`} className="text-xs text-primary hover:underline">View all</Link>
+            <Link href={`/parent/children/${studentId}/results`} className="text-xs text-primary hover:underline">View all</Link>
           </CardHeader>
           <CardContent className="p-0">
             <div className="divide-y divide-border">
@@ -143,7 +143,7 @@ export default function ChildDetailPage() {
         <Card>
           <CardHeader className="flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm">Recent Homework</CardTitle>
-            <Link href={`/portal/parent/children/${studentId}/homework`} className="text-xs text-primary hover:underline">View all</Link>
+            <Link href={`/parent/children/${studentId}/homework`} className="text-xs text-primary hover:underline">View all</Link>
           </CardHeader>
           <CardContent className="p-0">
             <div className="divide-y divide-border">

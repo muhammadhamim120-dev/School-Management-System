@@ -41,7 +41,7 @@ export default function ChildHomeworkPage() {
 
   return (
     <div>
-      <Link href={`/portal/parent/children/${studentId}`} className="inline-flex items-center gap-1 text-sm text-primary hover:underline mb-4">
+      <Link href={`/parent/children/${studentId}`} className="inline-flex items-center gap-1 text-sm text-primary hover:underline mb-4">
         <ChevronLeft className="h-4 w-4" /> Back
       </Link>
       <PageHeader title="Homework" description={data?.studentName ?? ""} />

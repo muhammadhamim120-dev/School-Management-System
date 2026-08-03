@@ -40,7 +40,7 @@ export default function ParentChildrenPage() {
       ) : children.length ? (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {children.map((child) => (
-            <Link key={child.id} href={`/portal/parent/children/${child.id}`}>
+            <Link key={child.id} href={`/parent/children/${child.id}`}>
               <Card className="transition-all hover:shadow-md hover:border-primary/30">
                 <CardHeader className="pb-2">
                   <CardTitle className="text-base">{child.name}</CardTitle>

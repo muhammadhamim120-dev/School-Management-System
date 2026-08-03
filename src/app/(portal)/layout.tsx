@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { AuthSessionProvider } from "@/components/session-provider";
 import { PortalShell } from "@/components/portal/portal-shell";
@@ -5,6 +6,9 @@ import { PortalShell } from "@/components/portal/portal-shell";
 export default async function PortalLayout({ children }: { children: React.ReactNode }) {
   const session = await auth();
   const role = (session?.user as { role?: string })?.role;
+
+  // Not signed in → unified email/password login.
+  if (!session) redirect("/login");
 
   if (role !== "PARENT" && role !== "STUDENT") {
     return (

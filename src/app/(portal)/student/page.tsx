@@ -52,7 +52,7 @@ export default function StudentDashboardPage() {
           Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-[100px] rounded-xl" />)
         ) : (
           <>
-            <Link href="/portal/student/timetable">
+            <Link href="/student/timetable">
               <Card className="transition-all hover:shadow-md hover:border-primary/30">
                 <CardContent className="flex items-center gap-4 p-4">
                   <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
@@ -65,7 +65,7 @@ export default function StudentDashboardPage() {
                 </CardContent>
               </Card>
             </Link>
-            <Link href="/portal/student/homework">
+            <Link href="/student/homework">
               <Card className="transition-all hover:shadow-md hover:border-primary/30">
                 <CardContent className="flex items-center gap-4 p-4">
                   <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
@@ -78,7 +78,7 @@ export default function StudentDashboardPage() {
                 </CardContent>
               </Card>
             </Link>
-            <Link href="/portal/student/results">
+            <Link href="/student/results">
               <Card className="transition-all hover:shadow-md hover:border-primary/30">
                 <CardContent className="flex items-center gap-4 p-4">
                   <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
@@ -93,7 +93,7 @@ export default function StudentDashboardPage() {
                 </CardContent>
               </Card>
             </Link>
-            <Link href="/portal/student/library">
+            <Link href="/student/library">
               <Card className="transition-all hover:shadow-md hover:border-primary/30">
                 <CardContent className="flex items-center gap-4 p-4">
                   <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
@@ -156,7 +156,7 @@ export default function StudentDashboardPage() {
         <Card>
           <CardHeader className="flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm">Notices</CardTitle>
-            <Link href="/portal/student/notices" className="text-xs text-primary hover:underline">View all</Link>
+            <Link href="/student/notices" className="text-xs text-primary hover:underline">View all</Link>
           </CardHeader>
           <CardContent className="p-0">
             <div className="divide-y divide-border">

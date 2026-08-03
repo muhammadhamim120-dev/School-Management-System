@@ -73,9 +73,9 @@ export function getDashboardPath(role: string): string {
     case "SUPER_ADMIN":
       return "/super-admin";
     case "PARENT":
-      return "/portal/parent";
+      return "/parent";
     case "STUDENT":
-      return "/portal/student";
+      return "/student";
     default:
       return "/dashboard";
   }

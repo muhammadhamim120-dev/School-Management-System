@@ -43,12 +43,12 @@ export default auth((req) => {
 
   // PARENT → portal routes
   if (role === "PARENT" && isDashboard) {
-    return NextResponse.redirect(new URL("/portal/parent", req.nextUrl));
+    return NextResponse.redirect(new URL("/parent", req.nextUrl));
   }
 
   // STUDENT → portal routes
   if (role === "STUDENT" && isDashboard) {
-    return NextResponse.redirect(new URL("/portal/student", req.nextUrl));
+    return NextResponse.redirect(new URL("/student", req.nextUrl));
   }
 
   // RBAC: Check admin-only routes
