@@ -1,3 +1,4 @@
+"use client";
 import { Building2, DollarSign, Users, LifeBuoy } from "lucide-react";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { StatCard } from "@/components/dashboard/stat-card";

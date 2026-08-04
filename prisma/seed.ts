@@ -58,8 +58,39 @@ async function main() {
   });
   console.log("✔ Admin user: admin@greenwood.edu / admin123");
 
-  // Login accounts for parents/students are created alongside their records
-  // below (they map to the User table by email). Default passwords:
+  // --- Super Admin (platform-level; schoolId null → signs in WITHOUT a school slug) ---
+  const superAdminEmail = "superadmin@greenwood.edu";
+  const existingSuper = await prisma.user.findFirst({ where: { email: superAdminEmail, schoolId: null } });
+  if (!existingSuper) {
+    await prisma.user.create({
+      data: {
+        name: "Super Administrator",
+        email: superAdminEmail,
+        password: await bcrypt.hash("superadmin123", 10),
+        role: "SUPER_ADMIN",
+        schoolId: null,
+      },
+    });
+  }
+  console.log("✔ Super admin: superadmin@greenwood.edu / superadmin123 (no school slug)");
+
+  // --- School Admin (school-scoped) ---
+  await prisma.user.upsert({
+    where: { email_schoolId: { email: "schooladmin@greenwood.edu", schoolId } },
+    update: {},
+    create: {
+      name: "School Admin",
+      email: "schooladmin@greenwood.edu",
+      password: await bcrypt.hash("schooladmin123", 10),
+      role: "SCHOOL_ADMIN",
+      schoolId,
+    },
+  });
+  console.log("✔ School admin: schooladmin@greenwood.edu / schooladmin123");
+
+  // Login-account passwords for teacher/parent/student records (created below;
+  // they map to the User table by email). Default passwords:
+  const teacherPassword = await bcrypt.hash("teacher123", 10);
   const parentPassword = await bcrypt.hash("parent123", 10);
   const studentPassword = await bcrypt.hash("student123", 10);
 
@@ -136,13 +167,14 @@ async function main() {
   const teachers = [];
   for (let i = 0; i < teacherData.length; i++) {
     const t = teacherData[i];
+    const teacherEmail = `teacher${1001 + i}@greenwood.edu`;
     const teacher = await prisma.teacher.upsert({
       where: { schoolId_teacherId: { schoolId, teacherId: `TCH-${1001 + i}` } },
       update: {},
       create: {
         teacherId: `TCH-${1001 + i}`,
         ...t,
-        email: `teacher${1001 + i}@greenwood.edu`,
+        email: teacherEmail,
         phone: `+8801${String(800000000 + i * 111111).padStart(9, "0")}`,
         joiningDate: yearsAgo(t.experience),
         salary: 35000 + i * 2500,
@@ -152,8 +184,14 @@ async function main() {
       },
     });
     teachers.push(teacher);
+    // Teacher login account (role TEACHER, mapped to the Teacher record by email).
+    await prisma.user.upsert({
+      where: { email_schoolId: { email: teacherEmail, schoolId } },
+      update: {},
+      create: { name: teacher.fullName, email: teacherEmail, password: teacherPassword, role: "TEACHER", schoolId },
+    });
   }
-  console.log(`✔ ${teachers.length} teachers`);
+  console.log(`✔ ${teachers.length} teachers (+ login accounts)`);
 
   // --- Subjects ---
   const subjectData = [
@@ -179,7 +217,7 @@ async function main() {
   console.log(`✔ ${subjectData.length} subjects`);
 
   // --- Parents ---
-  const parentNames = ["Robert Smith", "Maria Garcia", "David Johnson", "Linda Williams", "Michael Brown", "Sarah Davis"];
+  const parentNames = ["Abdul Hoque", "Rokeya Begum", "Shahidul Islam", "Ayesha Siddiqua", "Kamrul Hasan", "Nurjahan Akter"];
   const parents = [];
   for (let i = 0; i < parentNames.length; i++) {
     const p = await prisma.parent.upsert({
