@@ -232,7 +232,7 @@
     position: absolute;
     border-radius: 9999px;
     filter: blur(80px);
-    opacity: 0.5;
+    opacity: 0.72;
     will-change: transform;
     transform: translate(var(--px, 0px), var(--py, 0px));
   }
@@ -251,7 +251,7 @@
     background: radial-gradient(circle at 50% 50%, hsl(172 66% 48% / 0.4), transparent 70%);
     animation: aurora-drift-3 30s ease-in-out infinite alternate;
   }
-  .dark .aurora-blob { opacity: 0.32; }
+  .dark .aurora-blob { opacity: 0.45; }
   @keyframes aurora-drift-1 { to { transform: translate(calc(var(--px,0px) + 8vw), calc(var(--py,0px) + 6vh)) scale(1.1); } }
   @keyframes aurora-drift-2 { to { transform: translate(calc(var(--px,0px) - 6vw), calc(var(--py,0px) + 8vh)) scale(1.05); } }
   @keyframes aurora-drift-3 { to { transform: translate(calc(var(--px,0px) + 4vw), calc(var(--py,0px) - 6vh)) scale(1.12); } }

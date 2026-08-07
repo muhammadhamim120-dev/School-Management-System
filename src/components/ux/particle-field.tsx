@@ -55,7 +55,12 @@ type Particle = {
   hero: boolean;
 };
 
-function buildSprites(): HTMLCanvasElement[] {
+/**
+ * Pre-render one glow sprite per hue bucket. `core`/`mid` lightness lets us make
+ * a BRIGHT set for dark backgrounds (additive glow) and a DEEPER, more saturated
+ * set for light backgrounds (normal compositing — bright glow is invisible on white).
+ */
+function buildSprites(coreL: number, midL: number, midA: number): HTMLCanvasElement[] {
   const sprites: HTMLCanvasElement[] = [];
   for (let b = 0; b < HUE_BUCKETS; b++) {
     const hue = HUE_MIN + ((HUE_MAX - HUE_MIN) * b) / (HUE_BUCKETS - 1);
@@ -63,10 +68,10 @@ function buildSprites(): HTMLCanvasElement[] {
     c.width = c.height = SPRITE;
     const g = c.getContext("2d")!;
     const grd = g.createRadialGradient(SPRITE / 2, SPRITE / 2, 0, SPRITE / 2, SPRITE / 2, SPRITE / 2);
-    grd.addColorStop(0, `hsla(${hue}, 95%, 72%, 1)`);
-    grd.addColorStop(0.25, `hsla(${hue}, 92%, 64%, 0.55)`);
-    grd.addColorStop(0.6, `hsla(${hue}, 90%, 60%, 0.16)`);
-    grd.addColorStop(1, `hsla(${hue}, 90%, 60%, 0)`);
+    grd.addColorStop(0, `hsla(${hue}, 98%, ${coreL}%, 1)`);
+    grd.addColorStop(0.28, `hsla(${hue}, 95%, ${midL}%, ${midA})`);
+    grd.addColorStop(0.6, `hsla(${hue}, 92%, ${midL}%, ${midA * 0.4})`);
+    grd.addColorStop(1, `hsla(${hue}, 92%, ${midL}%, 0)`);
     g.fillStyle = grd;
     g.fillRect(0, 0, SPRITE, SPRITE);
     sprites.push(c);
@@ -85,7 +90,10 @@ export function ParticleField() {
 
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const dpr = Math.min(2, window.devicePixelRatio || 1);
-    const sprites = buildSprites();
+    // Bright glow for dark bg (additive), deeper saturated dots for light bg (normal).
+    const spritesDark = buildSprites(74, 64, 0.75);
+    const spritesLight = buildSprites(58, 50, 0.92);
+    const isDark = () => document.documentElement.classList.contains("dark");
 
     let width = 0;
     let height = 0;
@@ -105,7 +113,7 @@ export function ParticleField() {
 
     function makeParticle(): Particle {
       const z = rand(0.3, 1);
-      const hero = Math.random() < 0.16;
+      const hero = Math.random() < 0.22;
       const hue = rand(HUE_MIN, HUE_MAX);
       const speed = rand(4, 13);
       const ang = rand(0, Math.PI * 2);
@@ -118,11 +126,11 @@ export function ParticleField() {
         dvy: Math.sin(ang) * speed * z - rand(2, 8) * z,
         vx: 0,
         vy: 0,
-        r: (hero ? rand(2.2, 3.4) : rand(0.8, 1.8)) * (0.6 + z * 0.6),
-        glow: hero ? rand(11, 15) : rand(6, 9),
+        r: (hero ? rand(2.6, 4.2) : rand(1.1, 2.4)) * (0.6 + z * 0.6),
+        glow: hero ? rand(12, 17) : rand(7, 10),
         hue,
         hueBucket: Math.min(HUE_BUCKETS - 1, Math.floor(((hue - HUE_MIN) / (HUE_MAX - HUE_MIN)) * HUE_BUCKETS)),
-        base: (hero ? rand(0.55, 0.85) : rand(0.28, 0.6)) * (0.5 + z * 0.5),
+        base: (hero ? rand(0.8, 1.0) : rand(0.5, 0.82)) * (0.7 + z * 0.3),
         tw: rand(0, Math.PI * 2),
         twSpeed: rand(0.4, 1.3),
         hero,
@@ -139,9 +147,9 @@ export function ParticleField() {
       ctx!.setTransform(dpr, 0, 0, dpr, 0, 0);
 
       const area = width * height;
-      const base = Math.round(area / 20000);
-      const cap = width < 640 ? 34 : 96;
-      const count = Math.max(22, Math.min(cap, base));
+      const base = Math.round(area / 16000);
+      const cap = width < 640 ? 44 : 110;
+      const count = Math.max(28, Math.min(cap, base));
       particles = Array.from({ length: count }, makeParticle);
     }
 
@@ -182,9 +190,11 @@ export function ParticleField() {
       }
     }
 
-    function drawLinks(t: number) {
-      ctx!.lineWidth = 1;
-      // Constellation links between nearby particles.
+    function drawLinks(dark: boolean) {
+      // Deeper, more opaque lines on light backgrounds; luminous on dark.
+      const lineL = dark ? 68 : 50;
+      const mul = dark ? 0.5 : 0.7;
+      ctx!.lineWidth = dark ? 1 : 1.15;
       for (let i = 0; i < particles.length; i++) {
         const a = particles[i];
         const ax = px(a);
@@ -198,10 +208,10 @@ export function ParticleField() {
           const d2 = dx * dx + dy * dy;
           if (d2 > LINK_DIST * LINK_DIST) continue;
           const d = Math.sqrt(d2);
-          const alpha = (1 - d / LINK_DIST) * 0.22 * Math.min(a.z, b.z);
-          if (alpha < 0.012) continue;
+          const alpha = (1 - d / LINK_DIST) * mul * Math.min(a.z, b.z);
+          if (alpha < 0.015) continue;
           const hue = (a.hue + b.hue) / 2;
-          ctx!.strokeStyle = `hsla(${hue}, 90%, 66%, ${alpha})`;
+          ctx!.strokeStyle = `hsla(${hue}, 92%, ${lineL}%, ${alpha})`;
           ctx!.beginPath();
           ctx!.moveTo(ax, ay);
           ctx!.lineTo(bx, by);
@@ -216,23 +226,25 @@ export function ParticleField() {
           const d2 = dx * dx + dy * dy;
           if (d2 > CURSOR_LINK_DIST * CURSOR_LINK_DIST) continue;
           const d = Math.sqrt(d2);
-          const alpha = (1 - d / CURSOR_LINK_DIST) * 0.4;
-          ctx!.strokeStyle = `hsla(${p.hue}, 95%, 70%, ${alpha})`;
+          const alpha = (1 - d / CURSOR_LINK_DIST) * (dark ? 0.55 : 0.7);
+          ctx!.strokeStyle = `hsla(${p.hue}, 95%, ${dark ? 72 : 52}%, ${alpha})`;
           ctx!.beginPath();
           ctx!.moveTo(px(p), py(p));
           ctx!.lineTo(mouseX, mouseY);
           ctx!.stroke();
         }
       }
-      void t;
     }
 
-    function drawGlows(t: number) {
-      ctx!.globalCompositeOperation = "lighter";
+    function drawGlows(t: number, dark: boolean) {
+      // Additive bloom on dark; normal alpha on light (additive is invisible on white).
+      ctx!.globalCompositeOperation = dark ? "lighter" : "source-over";
+      const sprites = dark ? spritesDark : spritesLight;
+      const boost = dark ? 1 : 1.15; // light dots read slightly stronger
       for (const p of particles) {
-        const twinkle = reduced ? 1 : 0.62 + 0.38 * Math.sin(t * p.twSpeed + p.tw);
+        const twinkle = reduced ? 1 : 0.68 + 0.32 * Math.sin(t * p.twSpeed + p.tw);
         const size = p.r * p.glow;
-        ctx!.globalAlpha = Math.max(0, Math.min(1, p.base * twinkle));
+        ctx!.globalAlpha = Math.max(0, Math.min(1, p.base * twinkle * boost));
         ctx!.drawImage(sprites[p.hueBucket], px(p) - size / 2, py(p) - size / 2, size, size);
       }
       ctx!.globalAlpha = 1;
@@ -243,8 +255,9 @@ export function ParticleField() {
       ctx!.clearRect(0, 0, width, height);
       curX += (targetX - curX) * 0.06;
       curY += (targetY - curY) * 0.06;
-      drawLinks(t);
-      drawGlows(t);
+      const dark = isDark();
+      drawLinks(dark);
+      drawGlows(t, dark);
     }
 
     resize();
@@ -318,7 +331,7 @@ export function ParticleField() {
       ref={canvasRef}
       aria-hidden
       className="pointer-events-none fixed inset-0 h-full w-full"
-      style={{ opacity: 0.95 }}
+      style={{ opacity: 1 }}
     />
   );
 }
