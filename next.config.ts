@@ -5,14 +5,18 @@ const securityHeaders = [
     key: "Content-Security-Policy",
     value: [
       "default-src 'self'",
-      "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://cdn.jsdelivr.net",
+      // blob: is required for the Vapi/Krisp noise-cancellation AudioWorklet
+      // (loaded from a blob: URL). Without it the worklet is blocked and the
+      // microphone audio track never initialises — the assistant can't hear you.
+      "script-src 'self' 'unsafe-eval' 'unsafe-inline' blob: https://cdn.jsdelivr.net https://*.daily.co",
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       "img-src 'self' data: blob: https://images.unsplash.com https://ui-avatars.com https://i.pravatar.cc",
       "font-src 'self' https://fonts.gstatic.com",
-      // Vapi AI voice widget uses WebRTC via Vapi + Daily.co
-      "connect-src 'self' https://api.openai.com https://api.vapi.ai wss://api.vapi.ai https://*.daily.co wss://*.daily.co",
-      "media-src 'self' blob:",
-      "worker-src 'self' blob:",
+      // Vapi AI voice widget uses WebRTC via Vapi + Daily.co (mic worklet/models too)
+      "connect-src 'self' blob: https://api.openai.com https://api.vapi.ai wss://api.vapi.ai https://*.vapi.ai wss://*.vapi.ai https://*.daily.co wss://*.daily.co",
+      "media-src 'self' blob: https://*.daily.co",
+      "worker-src 'self' blob: https://*.daily.co",
+      "child-src 'self' blob:",
       "frame-ancestors 'none'",
       "base-uri 'self'",
       "form-action 'self'",
